@@ -210,3 +210,10 @@ input:disabled, select:disabled { background: #f1f4f2; }
   color: #58645f;
   line-height: 1.5;
 }
+
+.table-section-body { padding-top: 10px; }
+.table-empty-row td { padding: 0 !important; }
+.table-empty-inline { min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: #fbfcfb; color: var(--muted); }
+.table-empty-inline .table-empty-icon { margin: 0; }
+.table-empty-inline strong { color: #53625d; font-size: 12px; }
+.table-empty-inline span { font-size: 11px; }
