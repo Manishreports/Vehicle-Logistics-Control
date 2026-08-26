@@ -1,6 +1,6 @@
 {
   "name":"sto-vehicle-management-system",
-  "version":"0.1.1",
+  "version":"0.2.0",
   "private":true,
   "description":"SAP-inspired STO and Vehicle Management System",
   "scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},

@@ -12,5 +12,3 @@ export const VEHICLE_PLANNING_COLUMNS = [
   { key: 'vehicleOut', label: 'Vehicle Out' },
   { key: 'slipNumber', label: 'Slip Number' }
 ];
-
-export const vehiclePlanningData = [];
