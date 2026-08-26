@@ -20,7 +20,7 @@ function collectDirectStoMatches(rows, cols) {
   rows.forEach((row) => {
     const slip = String(row[cols.slip] ?? '').trim();
     if (!slip) return;
-    String(row[cols.sto] ?? '').split(/[,;\n|]+/).map((s) => s.trim()).filter(Boolean).forEach((sto) => {
+    String(row[cols.sto] ?? '').split(/[,;\n|\/]+/).map((s) => s.trim()).filter(Boolean).forEach((sto) => {
       const key = normalizeText(sto);
       if (!key) return;
       const existing = map.get(key) || new Set();
@@ -72,7 +72,7 @@ export function resolvePlanningEnrichment(planningRows, gateInRows, gateOutRows)
     const group = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
     if (!group || group === '||') return;
     const candidateSlips = new Set();
-    const stoValues = String(row.sto ?? '').split(/[,;\n|]+/).map((s) => s.trim()).filter(Boolean);
+    const stoValues = String(row.sto ?? '').split(/[,;\n|\/]+/).map((s) => s.trim()).filter(Boolean);
     stoValues.forEach((sto) => {
       (gateIn.stoToSlips.get(normalizeText(sto)) || new Set()).forEach((slip) => candidateSlips.add(slip));
     });
@@ -99,7 +99,7 @@ export function resolvePlanningEnrichment(planningRows, gateInRows, gateOutRows)
     const group = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
     const slip = groupSlips.get(group) || '';
     const matchedSlipSet = new Set();
-    String(row.sto ?? '').split(/[,;\n|]+/).map((s) => s.trim()).filter(Boolean).forEach((sto) => {
+    String(row.sto ?? '').split(/[,;\n|\/]+/).map((s) => s.trim()).filter(Boolean).forEach((sto) => {
       (gateIn.stoToSlips.get(normalizeText(sto)) || new Set()).forEach((candidate) => matchedSlipSet.add(candidate));
     });
     const rowHasDirectGateIn = slip && matchedSlipSet.has(slip);

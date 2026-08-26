@@ -16,7 +16,7 @@
   function dateKey(v){const d=parseDate(v);return d?`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`:''}
   function dateDisplay(v){const d=parseDate(v);return d?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}).format(d):text(v)}
   function groupKey(date,cfa,loading){return [dateKey(date),norm(cfa),norm(loading)].join('|')}
-  function splitMulti(v){return text(v).split(/[,;\n|]+/).map(x=>x.trim()).filter(Boolean)}
+  function splitMulti(v){return text(v).split(/[,;\n|\/]+/).map(x=>x.trim()).filter(Boolean)}
   function validMulti(v){const s=text(v);return s&&!['-','—','NA','N/A','NULL'].includes(norm(s))}
   function carry(rows,fields){const prev=Object.fromEntries(fields.map(f=>[f,'']));return rows.map(r=>{const n={...r};fields.forEach(f=>{if(text(n[f]))prev[f]=n[f];else if(prev[f])n[f]=prev[f]});return n})}
   function unique(values){const seen=new Set(),out=[];values.flatMap(v=>Array.isArray(v)?v:[v]).forEach(v=>{const s=text(v),k=norm(s);if(s&&!seen.has(k)){seen.add(k);out.push(s)}});return out}
