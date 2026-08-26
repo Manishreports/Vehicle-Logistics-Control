@@ -33,3 +33,12 @@
 - Updated the shared table component to keep column headers visible during empty states.
 - Updated the GitHub Pages-safe static application so the deployed root app shows the same Page 1 and Page 2 structures.
 - No business matching, status calculation, Raipur fallback, deduplication, or fake records added.
+
+## 0.3.0 - Bulk Paste & Dataset Separation
+- Added preview-before-import bulk paste for Vehicle Planning, Vehicle Status Tracking, and Raipur Database.
+- Added raw vs grouped dataset storage separation.
+- Added Date + CFA + Loading grouping for Vehicle Planning/Raipur.
+- Added Demanded Date + Location + Loading Pt. grouping for Vehicle Status Tracking.
+- Added MT weight normalization and aggregation.
+- Added multi-STO and multi-location aggregation.
+- Kept Raipur vehicle information user-sourced and independent from Gate Excel.

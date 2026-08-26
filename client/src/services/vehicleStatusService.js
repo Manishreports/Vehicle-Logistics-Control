@@ -1,18 +1,6 @@
 import { dataStore } from './dataStore';
 import { resolvePlanningEnrichment, resolveStatusEnrichment } from './gateSlipLookup';
-
-export function getVehicleStatusData() {
-  const basePlanning = dataStore.getPlanning();
-  const enrichedPlanning = resolvePlanningEnrichment(basePlanning, dataStore.getGateIn(), dataStore.getGateOut());
-  const status = dataStore.getStatus();
-  return resolveStatusEnrichment(status, enrichedPlanning, dataStore.getGateIn(), dataStore.getGateOut());
-}
-
-export function saveVehicleStatusData(rows) {
-  const clean = rows.map((row) => ({
-    demandedDate: row.demandedDate ?? '', requiredDate: row.requiredDate ?? '', location: row.location ?? '',
-    loadingPoint: row.loadingPoint ?? '', weight: row.weight ?? ''
-  }));
-  dataStore.setStatus(clean);
-  return clean;
-}
+import { aggregateStatusRows } from './bulkPasteService';
+export function getVehicleStatusData() { const enrichedPlanning = resolvePlanningEnrichment(dataStore.getPlanning(), dataStore.getGateIn(), dataStore.getGateOut()); return resolveStatusEnrichment(dataStore.getStatus(), enrichedPlanning, dataStore.getGateIn(), dataStore.getGateOut()); }
+export function getVehicleStatusRawData() { return dataStore.getStatusRaw(); }
+export function saveVehicleStatusData(rows, rawRows = rows) { const finalRows = aggregateStatusRows(rows); dataStore.setStatus(finalRows, rawRows); return finalRows; }

@@ -47,3 +47,12 @@ Future business rules should be implemented behind these boundaries rather than 
 ### Vehicle and gate data flow (0.2.0)
 
 `VehiclePlanningData`, `VehicleStatusTrackingData`, `GateInData`, and `GateOutData` remain separate datasets in browser storage. Gate In is indexed by Gate Slip Number and STO; Gate Out is indexed by Gate Slip Number. Page 1 resolves Gate Slip at `Date + CFA + Loading` group level, propagating only the slip to all STO rows in that group. Vehicle In, Vehicle Number, and Vehicle Out are populated only for STO rows with direct Gate In evidence, preventing partial-match fabrication. Page 2 matches `Demanded Date + Location + Loading Pt.` to the enriched Page 1 group key and then uses the group Gate Slip for Vehicle Arrived, Vehicle Dispatch, and Remarks. Multiple slips for a single group are treated as a conflict and are not silently resolved.
+
+### Bulk paste datasets
+- `vehiclePlanningRawData` -> exact parsed user paste rows.
+- `vehiclePlanningData` -> grouped Vehicle Planning plans.
+- `vehicleStatusTrackingRawData` -> exact parsed Page 2 demand rows.
+- `vehicleStatusTrackingData` -> grouped Page 2 demand groups.
+- `raipurDatabaseRawData` -> exact parsed Raipur paste rows.
+- `raipurDatabaseData` -> grouped Raipur master plans.
+- Raipur is never appended into Planning or Status automatically.

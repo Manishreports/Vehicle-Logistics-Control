@@ -6,72 +6,34 @@ import { VEHICLE_STATUS_COLUMNS } from '../data/vehicleStatusTrackingData';
 import { getVehicleStatusData, saveVehicleStatusData } from '../services/vehicleStatusService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { displayDate } from '../services/normalization';
+import { previewBulkPaste } from '../services/bulkPasteService';
 
-const FILTERS = [
-  ['status-demanded-date', 'Demanded Date', 'demandedDate'], ['status-required-date', 'Required Date', 'requiredDate'],
-  ['status-loading-point', 'Loading Pt.', 'loadingPoint'], ['status-location', 'Location', 'location'],
-  ['status-remarks', 'Remarks', 'remarks'], ['status-gate-slip', 'Gate Slip No.', 'gateSlipNo']
-];
-
-function parsePastedRows(text) {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (!lines.length) return [];
-  const delimiter = lines[0].includes('\t') ? '\t' : ',';
-  const first = lines[0].split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ''));
-  const headers = first.map((cell) => cell.toLowerCase());
-  const aliases = {
-    demandedDate: ['demanded date', 'demand date', 'date'], requiredDate: ['required date'], location: ['location', 'cfa'],
-    loadingPoint: ['loading pt.', 'loading pt', 'loading point', 'loading'], weight: ['weight']
-  };
-  const indexOf = (names) => headers.findIndex((h) => names.includes(h));
-  const idx = Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key, indexOf(names)]));
-  const hasHeader = Object.values(idx).some((value) => value >= 0);
-  const dataLines = hasHeader ? lines.slice(1) : lines;
-  const keys = Object.keys(aliases);
-  return dataLines.map((line) => {
-    const cells = line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ''));
-    return Object.fromEntries(keys.map((key, i) => [key, hasHeader ? (idx[key] >= 0 ? cells[idx[key]] ?? '' : '') : (cells[i] ?? '')]));
-  }).filter((row) => Object.values(row).some(Boolean));
-}
+const FILTERS = [['status-demanded-date', 'Demanded Date', 'demandedDate'], ['status-required-date', 'Required Date', 'requiredDate'], ['status-location', 'Location', 'location'], ['status-loading-point', 'Loading Pt.', 'loadingPoint'], ['status-remarks', 'Remarks', 'remarks'], ['status-gate-slip', 'Gate Slip No.', 'gateSlipNo']];
 
 export default function VehicleStatus() {
-  const [rows, setRows] = useState([]);
-  const [pasteText, setPasteText] = useState('');
-  const [message, setMessage] = useState('');
-  const [filterValues, setFilterValues] = useState({});
-  const refresh = useCallback(() => setRows(getVehicleStatusData()), []);
-  useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
+  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [filterValues, setFilterValues] = useState({});
+  const refresh = useCallback(() => setRows(getVehicleStatusData()), []); useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
+  const filteredRows = useMemo(() => rows.filter((row) => Object.entries(filterValues).every(([key, value]) => !value || String(row[key] ?? '').toLowerCase().includes(value.toLowerCase()))).map((row) => ({ ...row, demandedDate: displayDate(row.demandedDate), requiredDate: displayDate(row.requiredDate), vehicleArrived: displayDate(row.vehicleArrived), vehicleDispatch: displayDate(row.vehicleDispatch) })), [rows, filterValues]);
+  function buildPreview() { const result = previewBulkPaste(pasteText, 'status'); if (!result.rawRowCount) { setMessage('No valid vehicle status rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped demand before importing.'); }
+  function importPreview() { if (!preview?.rows.length) return; saveVehicleStatusData(preview.rows, preview.rows); setPasteText(''); setPreview(null); setMessage(`${preview.finalRowCount} vehicle demand group(s) imported from ${preview.rawRowCount} raw row(s).`); refresh(); }
+  function clearStatus() { dataStore.clearStatus(); setPasteText(''); setPreview(null); setMessage('Vehicle status data cleared.'); refresh(); }
+  return <div className="page-content">
+    <PageHeader title="Vehicle Status Tracking" description="Vehicle demand and operational status workspace." actions={<><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={() => setFilterValues({})}>Clear Filters</button></>} />
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Vehicle Demand</h2><p>Paste Demanded Date, Required Date, Location, Loading Pt. and Weight. Page 2 groups by Demanded Date + Location + Loading Pt.</p></div></div><div className="section-panel-body">
+      <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Demanded Date\tRequired Date\tLocation\tLoading Pt.\tWeight\n20-Jul-2026\t21-Jul-2026\tGhaziabad\tB-0 T-0\t17.300 MT" />
+      <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearStatus}>Clear Status Data</button>{message && <span className="inline-message">{message}</span>}</div>
+      {preview && <BulkPreview result={preview} onImport={importPreview} />}
+    </div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Status Filters</h2><p>Filters operate on the enriched Page 2 dataset.</p></div></div><div className="section-panel-body"><Toolbar>{FILTERS.map(([id, label, key]) => <div className="field-group" key={id}><label htmlFor={id}>{label}</label><input id={id} value={filterValues[key] || ''} onChange={(e) => setFilterValues((current) => ({ ...current, [key]: e.target.value }))} placeholder={label} /></div>)}</Toolbar></div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Status Records</h2><p>{filteredRows.length} final demand group(s). Gate/vehicle fields are enriched through the existing Page 1 group relationship.</p></div></div><div className="section-panel-body table-section-body"><DataTable columns={VEHICLE_STATUS_COLUMNS} rows={filteredRows} emptyTitle="No vehicle status records available." emptyDescription="Paste vehicle demand data above and preview the grouped result before import." showHeaderWhenEmpty /></div></section>
+  </div>;
+}
 
-  const filteredRows = useMemo(() => rows.filter((row) => Object.entries(filterValues).every(([key, value]) => !value || String(row[key] ?? '').toLowerCase().includes(value.toLowerCase()))).map((row) => ({
-    ...row, demandedDate: displayDate(row.demandedDate), requiredDate: displayDate(row.requiredDate), vehicleArrived: displayDate(row.vehicleArrived), vehicleDispatch: displayDate(row.vehicleDispatch)
-  })), [rows, filterValues]);
-
-  function loadPastedData() {
-    const parsed = parsePastedRows(pasteText);
-    if (!parsed.length) { setMessage('No valid vehicle status rows found in the pasted data.'); return; }
-    saveVehicleStatusData(parsed); setPasteText(''); setMessage(`${parsed.length} vehicle demand record(s) loaded.`); refresh();
-  }
-
-  function clearFilters() { setFilterValues({}); }
-  function clearStatus() { dataStore.setStatus([]); setMessage('Vehicle status data cleared.'); refresh(); }
-
-  return (
-    <div className="page-content">
-      <PageHeader title="Vehicle Status Tracking" description="Vehicle demand and operational status workspace." actions={(
-        <><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={clearFilters}>Clear Filters</button></>
-      )} />
-      <section className="section-panel">
-        <div className="section-panel-header"><div><h2>Vehicle Demand Input</h2><p>Paste demanded date, required date, location, loading point and weight. These fields are never overwritten by Gate Excel data.</p></div></div>
-        <div className="section-panel-body"><textarea className="paste-area" value={pasteText} onChange={(event) => setPasteText(event.target.value)} placeholder="Paste: Demanded Date, Required Date, Location, Loading Pt., Weight\n20-Jul-2026\t21-Jul-2026\tGhaziabad\tB-0 T-0\t17.300 MT" /><div className="input-action-row"><button className="button primary" onClick={loadPastedData}>Load Vehicle Demand</button><button className="button secondary" onClick={clearStatus}>Clear Status Data</button>{message && <span className="inline-message">{message}</span>}</div></div>
-      </section>
-      <section className="section-panel">
-        <div className="section-panel-header"><div><h2>Status Filters</h2><p>Filters operate on the current enriched Page 2 dataset.</p></div></div>
-        <div className="section-panel-body"><Toolbar>{FILTERS.map(([id, label, key]) => <div className="field-group" key={id}><label htmlFor={id}>{label}</label><input id={id} value={filterValues[key] || ''} onChange={(event) => setFilterValues((current) => ({ ...current, [key]: event.target.value }))} placeholder={label} /></div>)}</Toolbar></div>
-      </section>
-      <section className="section-panel">
-        <div className="section-panel-header"><div><h2>Vehicle Status Records</h2><p>Page 2 group key: Demanded Date + Location + Loading Pt. It matches Page 1 Date + CFA + Loading and then uses Gate Slip for arrival/dispatch.</p></div></div>
-        <div className="section-panel-body table-section-body"><DataTable columns={VEHICLE_STATUS_COLUMNS} rows={filteredRows} emptyTitle="No vehicle status records available." emptyDescription="Paste vehicle demand data above to create Page 2 records." showHeaderWhenEmpty /></div>
-      </section>
-    </div>
-  );
+function BulkPreview({ result, onImport }) {
+  const sample = result.finalRows.slice(0, 20);
+  return <div style={{ marginTop: 14, border: '1px solid #d6dde1', background: '#fafcfc' }}>
+    <div style={{ padding: '10px 12px', borderBottom: '1px solid #d6dde1', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><strong>Bulk Paste Preview</strong><span>Raw Rows: <b>{result.rawRowCount}</b> · Final Groups: <b>{result.finalRowCount}</b></span></div>
+    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S No</th><th>Demanded Date</th><th>Required Date</th><th>Location</th><th>Loading Pt.</th><th>Weight</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayDate(row.demandedDate)}</td><td>{row.requiredDate}</td><td>{row.location}</td><td>{row.loadingPoint}</td><td>{row.weight}</td></tr>)}{!sample.length && <tr><td colSpan="6">No grouped demand was produced.</td></tr>}</tbody></table></div>
+    <div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end' }}><button className="button primary" disabled={!result.finalRows.length} onClick={onImport}>Import Vehicle Demand</button></div>
+  </div>;
 }

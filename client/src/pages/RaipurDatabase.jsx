@@ -1,25 +1,31 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import Toolbar from '../components/Toolbar';
 import DataTable from '../components/DataTable';
+import { dataStore, useDataStoreSubscription } from '../services/dataStore';
+import { displayDate } from '../services/normalization';
+import { getRaipurDatabaseData, saveRaipurDatabaseData } from '../services/raipurDatabaseService';
+import { previewBulkPaste } from '../services/bulkPasteService';
+
+const COLUMNS = [
+  { key: 'serialNo', label: 'S.No' }, { key: 'date', label: 'Date' }, { key: 'loc', label: 'Loc' }, { key: 'plant', label: 'Plant' }, { key: 'cfa', label: 'CFA' }, { key: 'weight', label: 'Weight' }, { key: 'sto', label: 'STO' }, { key: 'loading', label: 'Loading' }, { key: 'vehicleIn', label: 'Vehicle In' }, { key: 'vehicleNumber', label: 'Vehicle Number' }, { key: 'vehicleOut', label: 'Vehicle Out' }, { key: 'slipNumber', label: 'Slip Number' }
+];
 
 export default function RaipurDatabase() {
-  return (
-    <div className="page-content">
-      <PageHeader
-        title="Raipur Database"
-        description="Independent Raipur dataset reserved as a future fallback source."
-        actions={<><button className="button secondary" disabled>＋ Add</button><button className="button secondary" onClick={() => window.location.reload()}>↻ Refresh</button></>}
-      />
-      <section className="section-panel">
-        <div className="section-panel-header"><div><h2>Raipur Records</h2><p>This dataset remains logically separate from Vehicle Planning and Vehicle Status Tracking.</p></div></div>
-        <Toolbar>
-          <div className="field-group search-field"><label htmlFor="raipur-search">Search</label><input id="raipur-search" placeholder="Search Raipur records (future)" disabled /></div>
-          <div className="field-group"><label htmlFor="raipur-filter">Filter</label><select id="raipur-filter" disabled><option>All records</option></select></div>
-          <button className="button secondary" disabled>Clear</button>
-        </Toolbar>
-        <DataTable columns={[]} rows={[]} emptyTitle="No Raipur database records available." emptyDescription="The Raipur dataset is ready to be connected without being merged into other datasets." />
-      </section>
-    </div>
-  );
+  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [search, setSearch] = useState('');
+  const refresh = useCallback(() => setRows(getRaipurDatabaseData()), []); useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
+  const visibleRows = useMemo(() => rows.filter((row) => !search || Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(search.toLowerCase()))).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })), [rows, search]);
+  function buildPreview() { const result = previewBulkPaste(pasteText, 'raipur'); if (!result.rawRowCount) { setMessage('No valid Raipur rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped Raipur dataset before importing.'); }
+  function importPreview() { if (!preview?.rows.length) return; saveRaipurDatabaseData(preview.rows, preview.rows); setPasteText(''); setPreview(null); setMessage(`${preview.finalRowCount} Raipur plan(s) imported from ${preview.rawRowCount} raw row(s).`); refresh(); }
+  function clearData() { dataStore.clearRaipur(); setPasteText(''); setPreview(null); setMessage('Raipur database cleared.'); refresh(); }
+  return <div className="page-content">
+    <PageHeader title="Raipur Database" description="Independent manually maintained Raipur dataset. Vehicle information is supplied by user paste and is never pulled from Gate Excel." actions={<><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={clearData}>Clear Data</button></>} />
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Raipur Data</h2><p>Paste planning and vehicle fields together. Grouping uses Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
+      <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tLoading\tVehicle In\tVehicle Number\tVehicle Out\tSlip Number" />
+      <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearData}>Clear Raipur Data</button>{message && <span className="inline-message">{message}</span>}</div>
+      {preview && <BulkPreview result={preview} onImport={importPreview} />}
+    </div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Raipur Records</h2><p>{visibleRows.length} final plan(s). This dataset remains independent from Vehicle Planning and Vehicle Status Tracking.</p></div></div><Toolbar><div className="field-group search-field"><label htmlFor="raipur-search">Search</label><input id="raipur-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Raipur records" /></div></Toolbar><div className="section-panel-body table-section-body"><DataTable columns={COLUMNS} rows={visibleRows} emptyTitle="No Raipur database records available." emptyDescription="Paste Raipur data above to create the independent master dataset." showHeaderWhenEmpty /></div></section>
+  </div>;
 }
+function BulkPreview({ result, onImport }) { const sample = result.finalRows.slice(0, 20); return <div style={{ marginTop: 14, border: '1px solid #d6dde1', background: '#fafcfc' }}><div style={{ padding: '10px 12px', borderBottom: '1px solid #d6dde1', display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Bulk Paste Preview</strong><span>Raw Rows: <b>{result.rawRowCount}</b> · Final Plans: <b>{result.finalRowCount}</b></span></div><div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S.No</th><th>Date</th><th>Loc</th><th>Plant</th><th>CFA</th><th>Weight</th><th>STO</th><th>Loading</th><th>Vehicle In</th><th>Vehicle Number</th><th>Vehicle Out</th><th>Slip Number</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayDate(row.date)}</td><td>{row.loc}</td><td>{row.plant}</td><td>{row.cfa}</td><td>{row.weight}</td><td>{row.sto}</td><td>{row.loading}</td><td>{displayDate(row.vehicleIn)}</td><td>{row.vehicleNumber}</td><td>{displayDate(row.vehicleOut)}</td><td>{row.slipNumber}</td></tr>)}{!sample.length && <tr><td colSpan="12">No grouped Raipur plans were produced.</td></tr>}</tbody></table></div><div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end' }}><button className="button primary" disabled={!result.finalRows.length} onClick={onImport}>Import Raipur Database</button></div></div>; }
