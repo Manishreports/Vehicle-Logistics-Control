@@ -111,8 +111,8 @@ input:disabled, select:disabled { background: #f1f4f2; }
 
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); }
 .enterprise-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 11px; }
-.enterprise-table th { position: sticky; top: 0; z-index: 1; text-align: left; background: #edf3f0; color: #42564e; border-bottom: 1px solid var(--border-dark); border-right: 1px solid #d9e0dd; padding: 8px 9px; font-size: 10px; font-weight: 700; white-space: nowrap; }
-.enterprise-table td { border-right: 1px solid #e1e7e4; border-bottom: 1px solid #e8ecea; padding: 7px 9px; color: #3d4c47; white-space: nowrap; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+.enterprise-table th { position: sticky; top: 0; z-index: 1; text-align: center; background: #edf3f0; color: #42564e; border-bottom: 1px solid var(--border-dark); border-right: 1px solid #d9e0dd; padding: 8px 9px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.enterprise-table td { text-align: center; vertical-align: middle; border-right: 1px solid #e1e7e4; border-bottom: 1px solid #e8ecea; padding: 7px 9px; color: #3d4c47; white-space: nowrap; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
 .enterprise-table tbody tr:hover { background: #f5f9f7; }
 .table-empty { min-height: 180px; border: 1px solid var(--border); background: #fbfcfb; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 7px; color: var(--muted); }
 .table-empty-icon { color: #83918b; font-size: 18px; }
@@ -217,3 +217,7 @@ input:disabled, select:disabled { background: #f1f4f2; }
 .table-empty-inline .table-empty-icon { margin: 0; }
 .table-empty-inline strong { color: #53625d; font-size: 12px; }
 .table-empty-inline span { font-size: 11px; }
+
+.grouped-planning-table th,.grouped-planning-table td{ text-align:center; vertical-align:middle; }
+.grouped-planning-table .plan-parent-cell{vertical-align:middle;text-align:center;}
+.grouped-planning-table .location-parent-cell{vertical-align:middle;text-align:center;font-weight:700;background:#fbfcfb;}

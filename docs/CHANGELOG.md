@@ -51,3 +51,12 @@
 - All application data tables are center aligned with vertical middle alignment.
 - Short dates such as `17-Aug` are resolved/displayed in the current year (2026 in the current application context).
 - Existing Date + CFA + Loading grouping, raw data storage, Excel enrichment, Page 2 grouping and Raipur data separation are unchanged.
+
+## UI update - Vehicle Planning Location-to-STO hierarchy
+- Vehicle Planning processed model now preserves `locations[]` with nested STO lists per business location.
+- Plan grouping remains `Date + CFA + Loading`.
+- Plan weight remains a single plan-level total.
+- Vehicle Planning final table renders parent plan fields with row spans and Location -> STO child hierarchy.
+- A location is rendered once per actual business location, independent of STO count.
+- Duplicate normalized locations within a plan are merged; their STOs remain unique and nested under that location.
+- Vehicle Planning table data is center-aligned vertically and horizontally.

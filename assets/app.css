@@ -3,3 +3,5 @@
 .pasteBox{width:100%;min-height:100px;border:1px solid #b9c5ca;padding:10px;font:12px Arial,Helvetica,sans-serif;resize:vertical;background:#fff}.conflict-row td{background:#fff5f5}.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.erp-table td{vertical-align:top}.erp-table th{white-space:nowrap}.collapsed{width:48px}.collapsed .sectionTitle,.collapsed .nav button{font-size:0}.collapsed .nav button span{font-size:14px}.collapsed{overflow:hidden}.collapsed .nav button{padding-left:12px}.input-action-row{display:flex;gap:8px;align-items:center;margin-top:9px}.inline-message{font-size:11px;color:#0b5e3c}.side{transition:none}.meta select{border:1px solid #c3cdd1;padding:3px;font-size:11px}
 
 .grouped-plan-table td{vertical-align:middle;text-align:center}.grouped-plan-table .plan-parent-cell{background:#fff}.grouped-plan-table .conflict-row td{background:#fff7ed}
+
+.grouped-plan-table .location-parent-cell{vertical-align:middle;text-align:center;font-weight:600;background:#fbfcfc}.grouped-plan-table .plan-parent-cell{vertical-align:middle;text-align:center}.table th,.table td{text-align:center!important;vertical-align:middle!important}

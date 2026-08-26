@@ -130,22 +130,59 @@ function uniqueOrdered(values) {
 
 export function aggregatePlanningRows(rows) {
   const groups = new Map();
-  const processedRows = carryForwardRows(rows, ['date', 'plant', 'cfa', 'loading']).map((row) => ({ ...row, sto: (Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)).filter(validMultiValue) }));
+  const processedRows = carryForwardRows(rows, ['date', 'plant', 'cfa', 'loading']).map((row) => ({
+    ...row,
+    sto: (Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)).filter(validMultiValue)
+  }));
+
   processedRows.forEach((row, rawIndex) => {
     const key = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
     if (!key || key === '||') return;
-    const group = groups.get(key) || { date: row.date, locs: [], plants: [], cfa: row.cfa, weights: 0, sto: [], loading: row.loading, rawRowIndexes: [], conflicts: [] };
+    const locationName = String(row.loc ?? '').trim() || '—';
+    const locationKey = normalizeText(locationName);
+    const group = groups.get(key) || {
+      date: row.date, plants: [], cfa: row.cfa, weights: 0, loading: row.loading,
+      locations: new Map(), rawRowIndexes: [], conflicts: []
+    };
+
     group.rawRowIndexes.push(rawIndex);
-    group.locs.push(row.loc); group.plants.push(row.plant); group.weights += parseWeightToMT(row.weight); group.sto.push(...(Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)));
+    group.plants.push(row.plant);
+    group.weights += parseWeightToMT(row.weight);
+
+    const location = group.locations.get(locationKey) || { loc: locationName, weightMT: 0, stos: [] };
+    location.weightMT += parseWeightToMT(row.weight);
+    location.stos.push(...row.sto);
+    group.locations.set(locationKey, location);
+
     if (row.cfa && normalizeText(row.cfa) !== normalizeText(group.cfa)) group.conflicts.push({ field: 'CFA', values: [group.cfa, row.cfa] });
     if (row.loading && normalizeText(row.loading) !== normalizeText(group.loading)) group.conflicts.push({ field: 'Loading', values: [group.loading, row.loading] });
     groups.set(key, group);
   });
-  return Array.from(groups.entries()).map(([key, group], index) => ({
-    serialNo: index + 1, groupKey: key, date: group.date, loc: uniqueOrdered(group.locs).join(' / '), plant: uniqueOrdered(group.plants).join(' / '), cfa: group.cfa,
-    weight: `${group.weights.toFixed(3)} MT`, weightMT: group.weights, sto: uniqueOrdered(group.sto).join(' / '), loading: group.loading,
-    rawRowIndexes: group.rawRowIndexes, conflicts: group.conflicts
-  }));
+
+  return Array.from(groups.entries()).map(([key, group], index) => {
+    const locations = Array.from(group.locations.values()).map((location) => ({
+      ...location,
+      stos: uniqueOrdered(location.stos)
+    }));
+    const sto = uniqueOrdered(locations.flatMap((location) => location.stos));
+    const loc = locations.map((location) => location.loc);
+    const plants = uniqueOrdered(group.plants);
+    return {
+      serialNo: index + 1,
+      groupKey: key,
+      date: group.date,
+      loc,
+      plant: plants,
+      cfa: group.cfa,
+      weight: `${group.weights.toFixed(3)} MT`,
+      weightMT: group.weights,
+      sto,
+      loading: group.loading,
+      locations,
+      rawRowIndexes: group.rawRowIndexes,
+      conflicts: group.conflicts
+    };
+  });
 }
 
 export function aggregateRaipurRows(rows) {

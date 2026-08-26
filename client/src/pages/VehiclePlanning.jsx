@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import Toolbar from '../components/Toolbar';
-import DataTable from '../components/DataTable';
 import { VEHICLE_PLANNING_COLUMNS } from '../data/vehiclePlanningData';
 import { getVehiclePlanningData, saveVehiclePlanningData } from '../services/vehiclePlanningService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
@@ -31,8 +30,51 @@ export default function VehiclePlanning() {
       {preview && <BulkPreview result={preview} onImport={importPreview} kind="Vehicle Planning" />}
     </div></section>
     <section className="section-panel"><div className="section-panel-header"><div><h2>Planning Filters</h2><p>Filters operate on the grouped and enriched Page 1 dataset.</p></div></div><div className="section-panel-body"><Toolbar>{FILTERS.map(([id, label, key]) => <div className="field-group" key={id}><label htmlFor={id}>{label}</label><input id={id} value={filterValues[key] || ''} onChange={(e) => setFilterValues((current) => ({ ...current, [key]: e.target.value }))} placeholder={label} /></div>)}</Toolbar></div></section>
-    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><DataTable columns={VEHICLE_PLANNING_COLUMNS} rows={filteredRows} emptyTitle="No vehicle planning data available." emptyDescription="Paste planning data above and preview the grouped result before import." showHeaderWhenEmpty /></div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><GroupedPlanningTable rows={filteredRows} /></div></section>
   </div>;
+}
+
+
+function buildPlanningDisplayRows(row) {
+  const locations = Array.isArray(row.locations) && row.locations.length
+    ? row.locations.map((location) => ({ loc: location.loc, stos: Array.isArray(location.stos) ? location.stos : [] }))
+    : [{ loc: Array.isArray(row.loc) ? (row.loc[0] || '—') : (row.loc || '—'), stos: Array.isArray(row.sto) ? row.sto : String(row.sto || '').split(/[,;\n|\/]+/).map((value) => value.trim()).filter(Boolean) }];
+  return locations.flatMap((location) => {
+    const stos = location.stos.length ? location.stos : [''];
+    return stos.map((sto, index) => ({ loc: location.loc, sto, locFirst: index === 0, locSpan: stos.length }));
+  });
+}
+
+function GroupedPlanningTable({ rows }) {
+  const columns = ['S.No', 'Date', 'Loc', 'Plant', 'CFA', 'Weight', 'STO', 'Loading', 'Vehicle In', 'Vehicle Number', 'Vehicle Out', 'Slip Number'];
+  if (!rows.length) return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={12}>No vehicle planning data available.</td></tr></tbody></table></div>;
+
+  return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>
+    {rows.map((row, rowIndex) => {
+      const displayRows = buildPlanningDisplayRows(row);
+      const totalRows = displayRows.length || 1;
+      return displayRows.map((item, childIndex) => <tr key={`${row.groupKey}-${childIndex}`} className={row.conflict ? 'conflict-row' : ''}>
+        {childIndex === 0 && <>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.serialNo}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.date)}</td>
+        </>}
+        {item.locFirst && <td rowSpan={item.locSpan} className="location-parent-cell">{item.loc}</td>}
+        {childIndex === 0 && <>
+          <td rowSpan={totalRows} className="plan-parent-cell">{Array.isArray(row.plant) ? row.plant[0] : row.plant}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.cfa}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.weight}</td>
+        </>}
+        <td>{item.sto}</td>
+        {childIndex === 0 && <>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.loading}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.vehicleIn)}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.vehicleNumber}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.vehicleOut)}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{row.slipNumber}</td>
+        </>}
+      </tr>);
+    })}
+  </tbody></table></div>;
 }
 
 function BulkPreview({ result, onImport, kind }) {
