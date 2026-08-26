@@ -42,3 +42,12 @@
 - Added MT weight normalization and aggregation.
 - Added multi-STO and multi-location aggregation.
 - Kept Raipur vehicle information user-sourced and independent from Gate Excel.
+
+## 0.3.1 - Vehicle Planning display update
+- Vehicle Planning grouped plans now render as parent/child multi-row groups.
+- Plan-level Weight is shown once as the aggregated MT total.
+- Location and STO values remain vertical child rows and are never slash-concatenated in the final planning table.
+- Parent values use row-spanning cells where supported by the table layout.
+- All application data tables are center aligned with vertical middle alignment.
+- Short dates such as `17-Aug` are resolved/displayed in the current year (2026 in the current application context).
+- Existing Date + CFA + Loading grouping, raw data storage, Excel enrichment, Page 2 grouping and Raipur data separation are unchanged.
