@@ -1,11 +1,10 @@
-# GitHub Pages Deployment
+# GitHub Pages deployment
 
-Repository: `https://github.com/Manishreports/Vehicle-Logistics-Control`
+This project contains a browser-ready root `index.html`, so GitHub Pages can publish the repository root directly without a Vite build.
 
-1. Upload the CONTENTS of this folder to the repository root (not the ZIP file itself and not a parent folder).
-2. Commit to the `main` branch.
-3. In GitHub: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
-4. Open Actions and confirm `Deploy React App to GitHub Pages` completes successfully.
-5. Open `https://manishreports.github.io/Vehicle-Logistics-Control/`.
+## Recommended Pages setting
+Settings -> Pages -> Build and deployment -> Source -> Deploy from a branch -> `main` -> `/ (root)`.
 
-The Vite base is configured as `/Vehicle-Logistics-Control/`.
+The repository root already contains the files required by GitHub Pages.
+
+The React/Vite source remains under `client/` and `vite.config.js` for future development. The root page is a deployment-safe fallback for Phase 1 so the site does not depend on Actions or a server runtime.
