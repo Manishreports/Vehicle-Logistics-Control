@@ -60,3 +60,15 @@
 - A location is rendered once per actual business location, independent of STO count.
 - Duplicate normalized locations within a plan are merged; their STOs remain unique and nested under that location.
 - Vehicle Planning table data is center-aligned vertically and horizontally.
+
+
+## 0.4.0 - Final Master UI / Data Workflow
+
+- Added editable FY, Period, and Date Range header with localStorage persistence.
+- Added subtle Manish Pandey watermark to the application shell.
+- Added Preview -> APPEND / REPLACE flow for all three independent datasets.
+- Added replace confirmation and separate persistence keys for raw/final data.
+- Preserved batch boundaries during fill-down processing on APPEND.
+- Removed deprecated explanatory paste/grouping text.
+- Fixed header detection so `-` placeholder cells do not count as headers.
+- Kept Vehicle Planning grouping `Date + CFA + Loading`, Page 2 grouping independent, and Raipur data independent.

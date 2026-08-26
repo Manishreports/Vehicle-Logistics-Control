@@ -5,6 +5,7 @@ import VehiclePlanning from './pages/VehiclePlanning';
 import VehicleStatus from './pages/VehicleStatus';
 import RaipurDatabase from './pages/RaipurDatabase';
 import ExcelUpload from './pages/ExcelUpload';
+import { dataStore } from './services/dataStore';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
@@ -19,6 +20,7 @@ const PAGE_NAMES = Object.fromEntries(NAV_ITEMS.map((item) => [item.path, item.l
 function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [headerSettings, setHeaderSettings] = useState(dataStore.getHeaderSettings());
   const location = useLocation();
   const pageName = useMemo(() => PAGE_NAMES[location.pathname] || 'Dashboard', [location.pathname]);
 
@@ -35,7 +37,7 @@ function AppShell() {
             <div className="brand-subtitle">Supply Chain Operations</div>
           </div>
         </div>
-        <div className="header-actions">
+        <div className="header-actions"><div className="period-block"><div className="period-summary">FY ({headerSettings.fy}) ({headerSettings.period}) {headerSettings.dateRange}</div><div className="header-period-editor"><label>FY <input value={headerSettings.fy} onChange={(e) => setHeaderSettings((s) => ({ ...s, fy: e.target.value }))} /></label><label>Period <input value={headerSettings.period} onChange={(e) => setHeaderSettings((s) => ({ ...s, period: e.target.value }))} /></label><label>Date Range <input value={headerSettings.dateRange} onChange={(e) => setHeaderSettings((s) => ({ ...s, dateRange: e.target.value }))} /></label><button className="header-save-button" onClick={() => dataStore.setHeaderSettings(headerSettings)}>Save</button></div></div>
           <div className="header-date">{new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' }).format(new Date())}</div>
           <button className="icon-button" onClick={() => setNotificationsOpen((value) => !value)} aria-label="Notifications">♢</button>
           <button className="profile-chip" aria-label="User profile">
@@ -68,7 +70,7 @@ function AppShell() {
         </div>
       </aside>
 
-      <main className="main-area">
+      <main className="main-area"><div className="watermark" aria-hidden="true">Manish Pandey</div>
         <div className="breadcrumb-bar">
           <span>Home</span><span className="breadcrumb-separator">›</span><strong>{pageName}</strong>
         </div>
@@ -79,7 +81,7 @@ function AppShell() {
         <div>System Status: <strong>Ready</strong></div>
         <div>Environment: <strong>Foundation</strong></div>
         <div className="status-bar-spacer" />
-        <div>STO &amp; Vehicle Management System&nbsp; | &nbsp;v0.1.0</div>
+        <div>STO &amp; Vehicle Management System&nbsp; | &nbsp;v0.4.0</div>
       </footer>
     </div>
   );

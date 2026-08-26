@@ -31,7 +31,8 @@ function findHeaderIndex(headers, aliases) {
   }
   for (const alias of aliases) {
     const target = normalizedHeader(alias);
-    const i = normalized.findIndex((h) => h.includes(target) || target.includes(h));
+    if (!target) continue;
+    const i = normalized.findIndex((h) => h && (h.includes(target) || target.includes(h)));
     if (i >= 0) return i;
   }
   return -1;
@@ -113,7 +114,9 @@ function validMultiValue(value) {
 function carryForwardRows(rows, fields) {
   const previous = Object.fromEntries(fields.map((field) => [field, '']));
   return rows.map((row) => {
+    if (row?.__batchBoundary) fields.forEach((field) => { previous[field] = ''; });
     const next = { ...row };
+    delete next.__batchBoundary;
     fields.forEach((field) => {
       if (String(next[field] ?? '').trim()) previous[field] = next[field];
       else if (previous[field]) next[field] = previous[field];
