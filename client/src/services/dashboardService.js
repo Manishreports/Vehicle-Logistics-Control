@@ -2,6 +2,7 @@ import { dataStore } from './dataStore';
 import { normalizeText } from './normalization';
 import { normalizeBusinessDate } from './dateService.js';
 import { resolvePlanningEnrichment } from './gateSlipLookup';
+import { getLoadingPointMappings, loadingPointsMatch } from './loadingPointMappingService.js';
 
 function groupKey(date, name, loading) {
   const datePart = normalizeBusinessDate(date) || '';
@@ -11,6 +12,7 @@ function groupKey(date, name, loading) {
 export function getDashboardAlerts() {
   const planning = dataStore.getPlanning();
   const status = dataStore.getStatus();
+  const mappings = getLoadingPointMappings();
   const planningGroups = new Map();
   const statusGroups = new Map();
 
@@ -23,12 +25,38 @@ export function getDashboardAlerts() {
     if (key !== '||') statusGroups.set(key, row);
   });
 
+  const matchedPlanning = new Set();
+  const matchedStatus = new Set();
   const alerts = [];
-  planningGroups.forEach((row, key) => {
-    if (!statusGroups.has(key)) alerts.push({ date: row.date, name: row.cfa, loading: row.loading, remarks: 'Vehicle Call Pending' });
+
+  planningGroups.forEach((plan, planKey) => {
+    if (statusGroups.has(planKey)) {
+      matchedPlanning.add(planKey); matchedStatus.add(planKey); return;
+    }
+    const mappedMatches = Array.from(statusGroups.entries()).filter(([statusKey, call]) =>
+      normalizeBusinessDate(call.demandedDate) === normalizeBusinessDate(plan.date)
+      && normalizeText(call.location) === normalizeText(plan.cfa)
+      && loadingPointsMatch(plan.loading, call.loadingPoint, mappings));
+    if (mappedMatches.length === 1) {
+      matchedPlanning.add(planKey); matchedStatus.add(mappedMatches[0][0]);
+    } else if (mappedMatches.length > 1) {
+      alerts.push({ date: plan.date, name: plan.cfa, loading: plan.loading, remarks: 'Loading Point Match Required' });
+    } else {
+      const sameDateCfa = Array.from(statusGroups.values()).some((call) =>
+        normalizeBusinessDate(call.demandedDate) === normalizeBusinessDate(plan.date)
+        && normalizeText(call.location) === normalizeText(plan.cfa));
+      if (sameDateCfa) alerts.push({ date: plan.date, name: plan.cfa, loading: plan.loading, remarks: 'Loading Point Match Required' });
+      else alerts.push({ date: plan.date, name: plan.cfa, loading: plan.loading, remarks: 'Vehicle Call Pending' });
+    }
   });
-  statusGroups.forEach((row, key) => {
-    if (!planningGroups.has(key)) alerts.push({ date: row.demandedDate, name: row.location, loading: row.loadingPoint, remarks: 'Plan Pending' });
+
+  statusGroups.forEach((call, statusKey) => {
+    if (matchedStatus.has(statusKey)) return;
+    const sameDateCfaPlan = Array.from(planningGroups.entries()).some(([planKey, plan]) =>
+      normalizeBusinessDate(plan.date) === normalizeBusinessDate(call.demandedDate)
+      && normalizeText(plan.cfa) === normalizeText(call.location));
+    if (sameDateCfaPlan) alerts.push({ date: call.demandedDate, name: call.location, loading: call.loadingPoint, remarks: 'Loading Point Match Required' });
+    else alerts.push({ date: call.demandedDate, name: call.location, loading: call.loadingPoint, remarks: 'Plan Pending' });
   });
 
   return alerts;

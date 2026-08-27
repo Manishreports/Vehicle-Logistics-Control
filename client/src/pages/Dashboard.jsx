@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { calculateCorePending, calculatePartialPending, getDashboardAlerts, getDashboardMetrics, getVehiclePlanningOverview } from '../services/dashboardService';
 import { displayBusinessDate } from '../services/dateService.js';
+import { deleteLoadingPointMapping, getLoadingPointMappings, saveLoadingPointMapping, updateLoadingPointMapping } from '../services/loadingPointMappingService.js';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(getDashboardMetrics);
@@ -40,6 +41,7 @@ export default function Dashboard() {
             <div className="sto-metric"><span>Partial Pending</span><strong>{calculatePartialPending() ?? '—'}</strong></div>
           </div>
         </SectionPanel>
+        <LoadingPointMatchPanel />
         <SectionPanel title="Alerts / Exceptions" subtitle="Plan and vehicle-call group comparison">
           {alerts.length ? (
             <div className="table-wrap">
@@ -54,6 +56,61 @@ export default function Dashboard() {
         </SectionPanel>
       </div>
     </div>
+  );
+}
+
+function LoadingPointMatchPanel() {
+  const [mappings, setMappings] = useState(getLoadingPointMappings);
+  const [source, setSource] = useState('');
+  const [target, setTarget] = useState('');
+  const [editingId, setEditingId] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => useDataStoreSubscription(() => setMappings(getLoadingPointMappings())), []);
+
+  function resetForm() { setSource(''); setTarget(''); setEditingId(''); }
+
+  function save() {
+    const result = editingId
+      ? updateLoadingPointMapping(editingId, source, target)
+      : saveLoadingPointMapping(source, target);
+    if (!result.ok) { setMessage(result.message); return; }
+    setMessage(editingId ? 'Loading Point mapping updated.' : 'Loading Point mapping saved.');
+    setMappings(getLoadingPointMappings());
+    resetForm();
+  }
+
+  function edit(mapping) {
+    setEditingId(mapping.id); setSource(mapping.source); setTarget(mapping.target); setMessage('');
+  }
+
+  function remove(mapping) {
+    if (!window.confirm(`Delete mapping \"${mapping.source} = ${mapping.target}\"?`)) return;
+    deleteLoadingPointMapping(mapping.id);
+    setMappings(getLoadingPointMappings());
+    setMessage('Loading Point mapping deleted.');
+    if (editingId === mapping.id) resetForm();
+  }
+
+  return (
+    <SectionPanel title="Loading Point Match" subtitle="Define equivalent Page 1 and Page 2 Loading Point names for matching.">
+      <div className="loading-map-form">
+        <label>Source Loading Point<input value={source} onChange={(e) => setSource(e.target.value)} placeholder="TOLAGAON LOADING" /></label>
+        <span className="loading-map-equals">=</span>
+        <label>Match With<input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Tolagaon" /></label>
+        <button className="button primary" onClick={save}>{editingId ? 'Update Mapping' : '+ Add Mapping'}</button>
+        {editingId && <button className="button secondary" onClick={resetForm}>Cancel</button>}
+      </div>
+      {message && <div className="inline-message">{message}</div>}
+      <div className="loading-map-list">
+        {mappings.length ? mappings.map((mapping) => (
+          <div className="loading-map-row" key={mapping.id}>
+            <span>{mapping.source}</span><strong>=</strong><span>{mapping.target}</span>
+            <div className="loading-map-actions"><button className="text-button" onClick={() => edit(mapping)}>Edit</button><button className="text-button danger" onClick={() => remove(mapping)}>Delete</button></div>
+          </div>
+        )) : <div className="loading-map-empty">No Loading Point mappings saved.</div>}
+      </div>
+    </SectionPanel>
   );
 }
 

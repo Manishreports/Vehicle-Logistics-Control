@@ -1,5 +1,6 @@
 import { GATE_HEADERS, findHeader, groupKey, normalizeText, normalizeGateSlipNumber } from './normalization';
 import { normalizeBusinessDate } from './dateService.js';
+import { getLoadingPointMappings, loadingPointsMatch } from './loadingPointMappingService.js';
 
 function buildColumns(rows) {
   const headers = Object.keys(rows[0] || {});
@@ -118,7 +119,7 @@ export function resolvePlanningEnrichment(planningRows, gateInRows, gateOutRows)
   });
 }
 
-export function resolveStatusEnrichment(statusRows, planningRows, gateInRows, gateOutRows) {
+export function resolveStatusEnrichment(statusRows, planningRows, gateInRows, gateOutRows, loadingMappings = getLoadingPointMappings()) {
   const gateIn = indexGateInRows(gateInRows);
   const gateOut = indexGateOutRows(gateOutRows);
   const page1Groups = new Map();
@@ -136,9 +137,24 @@ export function resolveStatusEnrichment(statusRows, planningRows, gateInRows, ga
   });
 
   return statusRows.map((row, index) => {
-    const key = groupKey({ date: row.demandedDate, cfa: row.location, loading: row.loadingPoint });
-    const slips = page1Groups.get(key) || new Set();
-    if (slips.size > 1) conflicts.push({ type: 'PAGE2_GROUP_CONFLICT', groupKey: key, slips: Array.from(slips) });
+    const exactKey = groupKey({ date: row.demandedDate, cfa: row.location, loading: row.loadingPoint });
+    let slips = page1Groups.get(exactKey) || new Set();
+    let matchedGroupKey = exactKey;
+    if (slips.size === 0) {
+      const candidates = planningRows
+        .filter((planning) => normalizeBusinessDate(planning.date) === normalizeBusinessDate(row.demandedDate)
+          && normalizeText(planning.cfa) === normalizeText(row.location)
+          && loadingPointsMatch(planning.loading, row.loadingPoint, loadingMappings))
+        .map((planning) => ({ key: groupKey({ date: planning.date, cfa: planning.cfa, loading: planning.loading }), slip: normalizeGateSlipNumber(planning.slipNumber), loading: planning.loading }));
+      const candidateSlips = new Set(candidates.map((item) => item.slip).filter(Boolean));
+      if (candidateSlips.size === 1) {
+        slips = candidateSlips;
+        matchedGroupKey = candidates[0]?.key || exactKey;
+      } else if (candidateSlips.size > 1) {
+        conflicts.push({ type: 'PAGE2_MAPPED_GROUP_CONFLICT', groupKey: exactKey, slips: Array.from(candidateSlips) });
+      }
+    }
+    if (slips.size > 1) conflicts.push({ type: 'PAGE2_GROUP_CONFLICT', groupKey: matchedGroupKey, slips: Array.from(slips) });
     const slip = slips.size === 1 ? Array.from(slips)[0] : '';
     const inInfo = slip ? gateIn.slipMap.get(slip) : null;
     const outInfo = slip ? gateOut.slipMap.get(slip) : null;
