@@ -1,9 +1,10 @@
 import { dataStore } from './dataStore';
-import { normalizeDate, normalizeText } from './normalization';
+import { normalizeText } from './normalization';
+import { normalizeBusinessDate } from './dateService.js';
 import { resolvePlanningEnrichment } from './gateSlipLookup';
 
 function groupKey(date, name, loading) {
-  const datePart = normalizeDate(date) || '';
+  const datePart = normalizeBusinessDate(date) || '';
   return `${datePart}|${normalizeText(name)}|${normalizeText(loading)}`;
 }
 

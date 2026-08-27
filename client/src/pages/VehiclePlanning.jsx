@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getVehiclePlanningData } from '../services/vehiclePlanningService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
-import { displayDate } from '../services/normalization';
+import { displayBusinessDate } from '../services/dateService.js';
 import { previewBulkPaste, aggregatePlanningRows } from '../services/bulkPasteService';
 
 export default function VehiclePlanning() {
   const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [query, setQuery] = useState('');
   const refresh = useCallback(() => setRows(getVehiclePlanningData()), []);
   useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
-  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })), [rows, query]);
+  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, date: displayBusinessDate(row.date), vehicleIn: displayBusinessDate(row.vehicleIn), vehicleOut: displayBusinessDate(row.vehicleOut) })), [rows, query]);
   const loadingPending = useMemo(() => rows.reduce((counts, row) => { const loading = String(row.loading || '').toUpperCase(); if (!row.vehicleIn && loading.includes('BAKAL')) counts.B += 1; if (!row.vehicleIn && loading.includes('TOLAGAON')) counts.T += 1; return counts; }, { B: 0, T: 0 }), [rows]);  function buildPreview() { const result = previewBulkPaste(pasteText, 'planning'); if (!result.rawRowCount) { setMessage('No valid planning rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped result before importing.'); }
   function importPreview(mode) {
     if (!preview?.rows.length) return;
@@ -56,7 +56,7 @@ function GroupedPlanningTable({ rows, loadingPending = { B: 0, T: 0 } }) {
       return displayRows.map((item, childIndex) => <tr key={`${row.groupKey}-${childIndex}`} className={row.conflict ? 'conflict-row' : ''}>
         {childIndex === 0 && <>
           <td rowSpan={totalRows} className="plan-parent-cell">{row.serialNo}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.date)}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayBusinessDate(row.date)}</td>
         </>}
         {item.locFirst && <td rowSpan={item.locSpan} className="location-parent-cell">{item.loc}</td>}
         {childIndex === 0 && <>
@@ -67,9 +67,9 @@ function GroupedPlanningTable({ rows, loadingPending = { B: 0, T: 0 } }) {
         <td>{item.sto}</td>
         {childIndex === 0 && <>
           <td rowSpan={totalRows} className="plan-parent-cell">{row.loading}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayDate(row.vehicleIn))}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayBusinessDate(row.vehicleIn))}</td>
           <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(row.vehicleNumber)}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayDate(row.vehicleOut))}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayBusinessDate(row.vehicleOut))}</td>
           <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(row.slipNumber)}</td>
         </>}
       </tr>);
@@ -81,7 +81,7 @@ function BulkPreview({ result, onImport, kind, existingCount }) {
   const sample = result.finalRows.slice(0, 20);
   return <div style={{ marginTop: 14, border: '1px solid #d6dde1', background: '#fafcfc' }}>
     <div style={{ padding: '10px 12px', borderBottom: '1px solid #d6dde1', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><strong>Bulk Paste Preview</strong><span>Raw Rows: <b>{result.rawRowCount}</b> · Final Plans: <b>{result.finalRowCount}</b> · Existing: <b>{existingCount}</b></span></div>
-    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S.No</th><th>Date</th><th>Loc</th><th>Plant</th><th>CFA</th><th>Weight</th><th>STO</th><th>Loading</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayDate(row.date)}</td><td>{row.loc}</td><td>{row.plant}</td><td>{row.cfa}</td><td>{row.weight}</td><td>{row.sto}</td><td>{row.loading}</td></tr>)}{!sample.length && <tr><td colSpan="8">No grouped plans were produced.</td></tr>}</tbody></table></div>
+    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S.No</th><th>Date</th><th>Loc</th><th>Plant</th><th>CFA</th><th>Weight</th><th>STO</th><th>Loading</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayBusinessDate(row.date)}</td><td>{row.loc}</td><td>{row.plant}</td><td>{row.cfa}</td><td>{row.weight}</td><td>{row.sto}</td><td>{row.loading}</td></tr>)}{!sample.length && <tr><td colSpan="8">No grouped plans were produced.</td></tr>}</tbody></table></div>
     <div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end', gap: 8 }}><button className="button secondary" disabled={!result.finalRows.length} onClick={() => onImport('append')}>APPEND</button><button className="button primary" disabled={!result.finalRows.length} onClick={() => onImport('replace')}>REPLACE</button></div>
   </div>;
 }

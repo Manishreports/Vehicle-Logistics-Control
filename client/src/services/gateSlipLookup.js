@@ -1,4 +1,5 @@
-import { GATE_HEADERS, findHeader, groupKey, normalizeDate, normalizeText, normalizeGateSlipNumber } from './normalization';
+import { GATE_HEADERS, findHeader, groupKey, normalizeText, normalizeGateSlipNumber } from './normalization';
+import { normalizeBusinessDate } from './dateService.js';
 
 function buildColumns(rows) {
   const headers = Object.keys(rows[0] || {});
@@ -78,7 +79,7 @@ export function resolvePlanningEnrichment(planningRows, gateInRows, gateOutRows)
     });
     if (gateIn.slipMap.size) {
       gateIn.slipMap.forEach((item) => {
-        if (normalizeDate(item.date) === normalizeDate(row.date)
+        if (normalizeBusinessDate(item.date) === normalizeBusinessDate(row.date)
           && normalizeText(item.cfa) === normalizeText(row.cfa)
           && normalizeText(item.loading) === normalizeText(row.loading)
           && item.slipNumber) {

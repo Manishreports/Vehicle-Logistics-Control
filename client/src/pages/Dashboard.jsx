@@ -4,7 +4,7 @@ import SectionPanel from '../components/SectionPanel';
 import EmptyState from '../components/EmptyState';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { calculateCorePending, calculatePartialPending, getDashboardAlerts, getDashboardMetrics, getVehiclePlanningOverview } from '../services/dashboardService';
-import { displayDate } from '../services/normalization';
+import { displayBusinessDate } from '../services/dateService.js';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(getDashboardMetrics);
@@ -45,7 +45,7 @@ export default function Dashboard() {
             <div className="table-wrap">
               <table className="enterprise-table dashboard-alert-table">
                 <thead><tr><th>Date</th><th>Name</th><th>Loading</th><th>Remarks</th></tr></thead>
-                <tbody>{alerts.map((alert, index) => <tr key={`${alert.remarks}-${alert.date}-${alert.name}-${alert.loading}-${index}`}><td>{displayDate(alert.date)}</td><td>{alert.name}</td><td>{alert.loading}</td><td>{alert.remarks}</td></tr>)}</tbody>
+                <tbody>{alerts.map((alert, index) => <tr key={`${alert.remarks}-${alert.date}-${alert.name}-${alert.loading}-${index}`}><td>{displayBusinessDate(alert.date)}</td><td>{alert.name}</td><td>{alert.loading}</td><td>{alert.remarks}</td></tr>)}</tbody>
               </table>
             </div>
           ) : (

@@ -3,13 +3,13 @@ import DataTable from '../components/DataTable';
 import { VEHICLE_STATUS_COLUMNS } from '../data/vehicleStatusTrackingData';
 import { getVehicleStatusData } from '../services/vehicleStatusService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
-import { displayDate } from '../services/normalization';
+import { displayBusinessDate } from '../services/dateService.js';
 import { previewBulkPaste, aggregateStatusRows } from '../services/bulkPasteService';
 
 export default function VehicleStatus() {
   const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [query, setQuery] = useState('');
   const refresh = useCallback(() => setRows(getVehicleStatusData()), []); useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
-  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, demandedDate: displayDate(row.demandedDate), requiredDate: displayDate(row.requiredDate), vehicleArrived: displayDate(row.vehicleArrived), vehicleDispatch: displayDate(row.vehicleDispatch) })), [rows, query]);  function buildPreview() { const result = previewBulkPaste(pasteText, 'status'); if (!result.rawRowCount) { setMessage('No valid vehicle status rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped demand before importing.'); }
+  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, demandedDate: displayBusinessDate(row.demandedDate), requiredDate: (row.requiredDates || []).map((value) => displayBusinessDate(value)).join(' / '), vehicleArrived: displayBusinessDate(row.vehicleArrived), vehicleDispatch: displayBusinessDate(row.vehicleDispatch) })), [rows, query]);  function buildPreview() { const result = previewBulkPaste(pasteText, 'status'); if (!result.rawRowCount) { setMessage('No valid vehicle status rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped demand before importing.'); }
   function importPreview(mode) {
     if (!preview?.rows.length) return;
     const existingFinal = dataStore.getStatus();
@@ -37,7 +37,7 @@ function BulkPreview({ result, onImport, existingCount }) {
   const sample = result.finalRows.slice(0, 20);
   return <div style={{ marginTop: 14, border: '1px solid #d6dde1', background: '#fafcfc' }}>
     <div style={{ padding: '10px 12px', borderBottom: '1px solid #d6dde1', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><strong>Bulk Paste Preview</strong><span>Raw Rows: <b>{result.rawRowCount}</b> · Final Groups: <b>{result.finalRowCount}</b> · Existing: <b>{existingCount}</b></span></div>
-    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S No</th><th>Demanded Date</th><th>Required Date</th><th>Location</th><th>Loading Pt.</th><th>Weight</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayDate(row.demandedDate)}</td><td>{row.requiredDate}</td><td>{row.location}</td><td>{row.loadingPoint}</td><td>{row.weight}</td></tr>)}{!sample.length && <tr><td colSpan="6">No grouped demand was produced.</td></tr>}</tbody></table></div>
+    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S No</th><th>Demanded Date</th><th>Required Date</th><th>Location</th><th>Loading Pt.</th><th>Weight</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayBusinessDate(row.demandedDate)}</td><td>{(row.requiredDates || []).map((value) => displayBusinessDate(value)).join(' / ')}</td><td>{row.location}</td><td>{row.loadingPoint}</td><td>{row.weight}</td></tr>)}{!sample.length && <tr><td colSpan="6">No grouped demand was produced.</td></tr>}</tbody></table></div>
     <div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end', gap: 8 }}><button className="button secondary" disabled={!result.finalRows.length} onClick={() => onImport('append')}>APPEND</button><button className="button primary" disabled={!result.finalRows.length} onClick={() => onImport('replace')}>REPLACE</button></div>
   </div>;
 }

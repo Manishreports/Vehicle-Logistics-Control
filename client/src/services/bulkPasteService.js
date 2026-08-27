@@ -1,4 +1,5 @@
-import { groupKey, normalizeText, splitMultiValue, normalizeDate, displayDate } from './normalization.js';
+import { groupKey, normalizeText, splitMultiValue } from './normalization.js';
+import { normalizeBusinessDate, displayBusinessDate } from './dateService.js';
 
 const FIELD_ALIASES = {
   planning: {
@@ -169,12 +170,13 @@ export function aggregatePlanningRows(rows) {
   }));
 
   processedRows.forEach((row, rawIndex) => {
-    const key = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
+    const normalizedDate = normalizeBusinessDate(row.date);
+    const key = groupKey({ date: normalizedDate, cfa: row.cfa, loading: row.loading });
     if (!key || key === '||') return;
     const locationName = String(row.loc ?? '').trim() || '—';
     const locationKey = normalizeText(locationName);
     const group = groups.get(key) || {
-      date: row.date, plants: [], cfa: row.cfa, weights: 0, loading: row.loading,
+      date: normalizedDate, plants: [], cfa: row.cfa, weights: 0, loading: row.loading,
       locations: new Map(), rawRowIndexes: [], conflicts: []
     };
 
@@ -226,10 +228,11 @@ export function aggregateRaipurRows(rows) {
   }));
 
   processedRows.forEach((row, rawIndex) => {
-    const key = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
+    const normalizedDate = normalizeBusinessDate(row.date);
+    const key = groupKey({ date: normalizedDate, cfa: row.cfa, loading: row.loading });
     if (!key || key === '||') return;
     const group = groups.get(key) || {
-      date: row.date,
+      date: normalizedDate,
       plants: [],
       cfa: row.cfa,
       weightMT: 0,
@@ -323,13 +326,15 @@ export function aggregateStatusRows(rows) {
   const groups = new Map();
   const processedRows = carryForwardRows(rows, ['demandedDate', 'requiredDate', 'location', 'loadingPoint']);
   processedRows.forEach((row, rawIndex) => {
-    const key = groupKey({ date: row.demandedDate, cfa: row.location, loading: row.loadingPoint });
+    const normalizedDemandedDate = normalizeBusinessDate(row.demandedDate);
+    const normalizedRequiredDate = normalizeBusinessDate(row.requiredDate);
+    const key = groupKey({ date: normalizedDemandedDate, cfa: row.location, loading: row.loadingPoint });
     if (!key || key === '||') return;
-    const group = groups.get(key) || { demandedDate: row.demandedDate, requiredDates: [], location: row.location, loadingPoint: row.loadingPoint, weight: 0, rawRowIndexes: [] };
-    group.rawRowIndexes.push(rawIndex); group.requiredDates.push(row.requiredDate); group.weight += parseWeightToMT(row.weight); groups.set(key, group);
+    const group = groups.get(key) || { demandedDate: normalizedDemandedDate, requiredDates: [], location: row.location, loadingPoint: row.loadingPoint, weight: 0, rawRowIndexes: [] };
+    group.rawRowIndexes.push(rawIndex); if (normalizedRequiredDate) group.requiredDates.push(normalizedRequiredDate); group.weight += parseWeightToMT(row.weight); groups.set(key, group);
   });
   return Array.from(groups.entries()).map(([key, group], index) => ({
-    serialNo: index + 1, groupKey: key, demandedDate: group.demandedDate, requiredDate: uniqueOrdered(group.requiredDates).join(' / '), location: group.location,
+    serialNo: index + 1, groupKey: key, demandedDate: group.demandedDate, requiredDates: uniqueOrdered(group.requiredDates), location: group.location,
     loadingPoint: group.loadingPoint, weight: `${group.weight.toFixed(3)} MT`, weightMT: group.weight, rawRowIndexes: group.rawRowIndexes
   }));
 }

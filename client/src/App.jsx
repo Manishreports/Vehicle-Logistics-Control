@@ -1,3 +1,4 @@
+import { ensureDateDataVersion } from './services/dataVersion';
 import React, { useMemo, useState } from 'react';
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
@@ -90,6 +91,7 @@ function AppShell() {
 }
 
 export default function App() {
+  ensureDateDataVersion();
   return (
     <Routes>
       <Route element={<AppShell />}>

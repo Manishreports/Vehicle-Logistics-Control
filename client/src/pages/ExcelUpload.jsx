@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import SectionPanel from '../components/SectionPanel';
 import { parseExcelFile } from '../services/excelService';
 import { dataStore } from '../services/dataStore';
-import { GATE_HEADERS, findHeader, displayDate } from '../services/normalization';
+import { GATE_HEADERS, findHeader } from '../services/normalization';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 15];
 
@@ -105,14 +105,12 @@ export default function ExcelUpload() {
         </div>
         {!activeSheet || !activeSheet.rows.length ? <div className="sheet-empty">This sheet contains no data.</div> : <>
           <div className="preview-summary"><span>Rows: <strong>{filteredRows.length.toLocaleString('en-IN')}</strong>{query ? ` of ${activeSheet.rowCount.toLocaleString('en-IN')}` : ''}</span><span>Columns: <strong>{activeSheet.columnCount}</strong></span><span>Showing <strong>{startRow}–{endRow}</strong></span><div className="rows-control"><label htmlFor="page-size">Rows</label><select id="page-size" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>{PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}<option value={activeSheet.rowCount || 1}>All</option></select></div></div>
-          <div className="preview-table-wrap"><table className="enterprise-table preview-table"><thead><tr><th className="row-number-head">#</th>{activeSheet.headers.map((header) => <th key={header}>{header}</th>)}</tr></thead><tbody>{visibleRows.map((row, index) => <tr key={`${safePage}-${index}`}><td className="row-number">{(safePage - 1) * pageSize + index + 1}</td>{activeSheet.headers.map((header) => <td key={header} title={String(row[header] ?? '')}>{previewCellValue(row[header], header)}</td>)}</tr>)}</tbody></table></div>
+          <div className="preview-table-wrap"><table className="enterprise-table preview-table"><thead><tr><th className="row-number-head">#</th>{activeSheet.headers.map((header) => <th key={header}>{header}</th>)}</tr></thead><tbody>{visibleRows.map((row, index) => <tr key={`${safePage}-${index}`}><td className="row-number">{(safePage - 1) * pageSize + index + 1}</td>{activeSheet.headers.map((header) => <td key={header} title={String(row[header] ?? '')}>{row[header] ?? ''}</td>)}</tr>)}</tbody></table></div>
           <div className="pagination"><span>Showing {startRow}–{endRow} of {filteredRows.length.toLocaleString('en-IN')} rows</span><div className="pagination-buttons"><button className="button pagination-button" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button><span className="page-indicator">Page {safePage} of {totalPages}</span><button className="button pagination-button" disabled={safePage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>›</button></div></div>
         </>}
       </SectionPanel>}
     </div>
   );
 }
-function previewCellValue(value, header) { return /date/i.test(String(header || '')) ? displayDate(value) : (value ?? ''); }
-
 function InfoItem({ label, value, valueClass = '' }) { return <div className="info-item"><span>{label}</span><strong className={valueClass}>{value}</strong></div>; }
 function formatBytes(bytes) { if (!Number.isFinite(bytes) || bytes === 0) return '0 Bytes'; const units = ['Bytes', 'KB', 'MB', 'GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`; }
