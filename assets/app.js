@@ -90,7 +90,7 @@ window.diagnosticDate=diagnosticDate;
 window.buildDateDiagnostic=buildDateDiagnostic;
 window.openDateDiagnostic=openDateDiagnostic;
 (function installDateDebugButton(){
-  const add=()=>{if(document.getElementById('dateDebugBtn'))return;const b=document.createElement('button');b.id='dateDebugBtn';b.type='button';b.textContent='DATE DEBUG';b.style.cssText='position:fixed;right:18px;bottom:70px;z-index:99998;border:1px solid #64748b;background:#fff;color:#1f3b4d;padding:7px 11px;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer';b.addEventListener('click',openDateDiagnostic);document.body.appendChild(b)};
+  const add=()=>{if(document.getElementById('dateDebugBtn'))return;const b=document.createElement('button');b.id='dateDebugBtn';b.type='button';b.textContent='DATE DEBUG';b.style.cssText='position:fixed;right:18px;bottom:70px;z-index:99998;border:1px solid #64748b;background:#fff;color:#1f3b4d;padding:7px 11px;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer';b.onclick=()=>{document.body.dataset.dateDebugClicked='yes';openDateDiagnostic()};document.body.appendChild(b)};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
 })();
 
