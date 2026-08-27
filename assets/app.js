@@ -50,6 +50,50 @@
   function dashboardAlerts(){const planning=read(KEYS.planning,[]),status=read(KEYS.status,[]),pm=new Map(),sm=new Map();planning.forEach(r=>{const k=dashboardGroupKey(r.date,r.cfa,r.loading);if(k!=='||')pm.set(k,r)});status.forEach(r=>{const k=dashboardGroupKey(r.demandedDate,r.location,r.loadingPoint);if(k!=='||')sm.set(k,r)});const out=[];pm.forEach((r,k)=>{if(!sm.has(k))out.push({date:r.date,name:r.cfa,loading:r.loading,remarks:'Vehicle Call Pending'})});sm.forEach((r,k)=>{if(!pm.has(k))out.push({date:r.demandedDate,name:r.location,loading:r.loadingPoint,remarks:'Plan Pending'})});return out}
   function dashboardMetrics(){return{totalPlannedVehicles:read(KEYS.planning,[]).length,vehicleCalled:read(KEYS.status,[]).length,pendingLoading:loadingPendingCounts()}}
   function saveHeaderSettings(){const fy=document.getElementById('headerFy')?.value.trim()||'2026-2027';const period=document.getElementById('headerPeriod')?.value.trim()||'P06';const dateRange=document.getElementById('headerDateRange')?.value.trim()||'17 Aug - 13 Sep';state.header={fy,period,dateRange};write(KEYS.headerSettings,state.header);state.message='Header settings saved.';render()}
+// ===== TEMPORARY DATE DEBUG (READ ONLY) =====
+function diagnosticFind(rows){
+  if(!Array.isArray(rows)) return null;
+  const needles=['234151','RJ11GD3059','4210086451'];
+  return rows.find(row=>{
+    const raw=JSON.stringify(row ?? {});
+    return needles.some(n=>raw.includes(n));
+  })||null;
+}
+function diagnosticDate(record){
+  if(!record||typeof record!=='object') return '';
+  const keys=['date','Date','gateInDate','Gate In Date','vehicleIn','Vehicle In','gateOutDate','Gate Out Date','vehicleOut','Vehicle Out','demandedDate','Demanded Date'];
+  for(const k of keys){
+    if(Object.prototype.hasOwnProperty.call(record,k) && record[k]!==null && record[k]!=='') return String(record[k]);
+  }
+  return '';
+}
+function buildDateDiagnostic(){
+  let gateIn=[],gateOut=[],planning=[],status=[];
+  try{gateIn=JSON.parse(localStorage.getItem('vlc.gateInData')||'[]')}catch{}
+  try{gateOut=JSON.parse(localStorage.getItem('vlc.gateOutData')||'[]')}catch{}
+  try{planning=JSON.parse(localStorage.getItem('vlc.vehiclePlanningData')||'[]')}catch{}
+  try{status=JSON.parse(localStorage.getItem('vlc.vehicleStatusTrackingData')||'[]')}catch{}
+  const gi=diagnosticFind(gateIn),go=diagnosticFind(gateOut),pl=diagnosticFind(planning),st=diagnosticFind(status);
+  const planDate=diagnosticDate(pl),statusDate=diagnosticDate(st),giDate=diagnosticDate(gi),goDate=diagnosticDate(go);
+  return {gateIn:{found:!!gi,date:giDate},gateOut:{found:!!go,date:goDate},planning:{found:!!pl,date:planDate},status:{found:!!st,date:statusDate},plan:pl,status:st};
+}
+function openDateDiagnostic(){
+  let host=document.getElementById('dateDebugHost');
+  if(!host){host=document.createElement('div');host.id='dateDebugHost';document.body.appendChild(host)}
+  const d=buildDateDiagnostic();
+  const esc=v=>String(v??'—').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  host.innerHTML=`<div id="dateDebugOverlay" style="position:fixed;inset:0;z-index:99999;background:rgba(20,30,36,.35);display:flex;align-items:flex-start;justify-content:center;padding:50px 18px;overflow:auto"><section style="width:min(720px,100%);background:#fff;border:1px solid #8e9ba3;box-shadow:0 8px 30px rgba(0,0,0,.22);font:12px/1.5 Arial,sans-serif;color:#26343d"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #d6dde1;background:#f4f6f7"><strong>DATE DEBUG — READ ONLY</strong><button id="closeDateDebug" type="button" style="padding:5px 10px">Close</button></div><div style="padding:14px;white-space:pre-wrap"><strong>Gate Slip:</strong> 234151\n<strong>Vehicle:</strong> RJ11GD3059\n<strong>STO:</strong> 4210086451\n\n<strong>Gate In LocalStorage</strong>\nFound: ${d.gateIn.found?'YES':'NO'}\nDate: ${esc(d.gateIn.date)}\n\n<strong>Gate Out LocalStorage</strong>\nFound: ${d.gateOut.found?'YES':'NO'}\nDate: ${esc(d.gateOut.date)}\n\n<strong>Vehicle Planning LocalStorage</strong>\nFound: ${d.planning.found?'YES':'NO'}\nDate: ${esc(d.planning.date)}\n\n<strong>Vehicle Status</strong>\nFound: ${d.status.found?'YES':'NO'}\nDate: ${esc(d.status.date)}\n\n<strong>Planning Runtime</strong>\nDate: ${esc(d.plan?.date||d.plan?.vehicleIn)}\n\n<strong>Status Runtime</strong>\nDate: ${esc(d.status?.date||d.status?.vehicleArrived)}\n\n<strong>Final Display</strong>\nDate: ${esc(d.plan?.vehicleIn||d.plan?.date)}\n\n<strong>Pipeline</strong>\nExcel/Input → Parser → Normalized → LocalStorage → Planning → Status → Display\n\n<small>This diagnostic ONLY reads LocalStorage/runtime values. It does not write, update, delete, normalize, repair, or replace data.</small></div></section></div>`;
+  document.getElementById('closeDateDebug')?.addEventListener('click',()=>{host.innerHTML=''},{once:true});
+}
+window.diagnosticFind=diagnosticFind;
+window.diagnosticDate=diagnosticDate;
+window.buildDateDiagnostic=buildDateDiagnostic;
+window.openDateDiagnostic=openDateDiagnostic;
+(function installDateDebugButton(){
+  const add=()=>{if(document.getElementById('dateDebugBtn'))return;const b=document.createElement('button');b.id='dateDebugBtn';b.type='button';b.textContent='DATE DEBUG';b.style.cssText='position:fixed;right:18px;bottom:70px;z-index:99998;border:1px solid #64748b;background:#fff;color:#1f3b4d;padding:7px 11px;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer';b.addEventListener('click',openDateDiagnostic);document.body.appendChild(b)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
+})();
+
   function render(){root.innerHTML=`<div class="app"><header class="header"><div class="brand"><button class="menu-toggle" id="menuBtn">☰</button><div class="logo">SV</div><div><div class="app-title">STO &amp; Vehicle Management System</div><small>Supply Chain Operations</small></div></div><div class="headRight"><div class="period-block"><div class="period-summary">FY (${esc(state.header.fy)}) (${esc(state.header.period)}) ${esc(state.header.dateRange)}</div><div class="period-editor"><label>FY <input id="headerFy" value="${esc(state.header.fy)}"></label><label>Period <input id="headerPeriod" value="${esc(state.header.period)}"></label><label>Date Range <input id="headerDateRange" value="${esc(state.header.dateRange)}"></label><button class="header-save" id="saveHeader">Save</button></div></div><span>${new Intl.DateTimeFormat('en-IN',{dateStyle:'medium'}).format(new Date())}</span><div class="user"><div class="avatar">MU</div><strong>MIS User</strong></div></div></header><aside class="side ${state.sidebar?'':'collapsed'}"><div class="sectionTitle">Application</div><div class="nav">${nav.map(n=>`<button class="${state.page===n[0]?'active':''}" data-nav="${n[0]}"><span style="display:inline-block;width:24px">${n[2]}</span>${n[1]}</button>`).join('')}</div><div style="margin-top:auto;padding:12px;font-size:11px;color:#697781"><strong>System</strong><div style="margin-top:7px;color:#0b5e3c">● Ready</div></div></aside><main class="content"><div class="watermark" aria-hidden="true">Manish Pandey</div><div class="crumb"><span>Home</span><span>›</span><strong>${names[state.page]}</strong></div>${pageHtml()}</main><button id="backToTop" class="back-to-top hidden" aria-label="Back to top">↑ Top</button><footer class="footer"><span>System Status: <strong>Ready</strong></span><span>STO &amp; Vehicle Management System | v0.4.0</span></footer></div>`;bind()}
   function pageHtml(){if(state.page==='dashboard')return dashboardHtml();if(state.page==='planning')return planningHtml();if(state.page==='status')return statusHtml();if(state.page==='raipur')return raipurHtml();return uploadHtml()}
   function dashboardHtml(){const m=dashboardMetrics(),a=dashboardAlerts(),o=vehiclePlanningOverview(),total=Math.max(1,o.dispatched+o.onloading+o.pending);return `<div class="kpis"><div class="kpi"><span>Total Planned Vehicles</span><strong>${m.totalPlannedVehicles}</strong></div><div class="kpi"><span>Vehicle Called</span><strong>${m.vehicleCalled}</strong></div><div class="kpi"><span>Pending Vehicles</span><strong>—</strong></div><div class="kpi"><span>Dispatched Vehicles</span><strong>—</strong></div><div class="kpi"><span>Cancelled Vehicles</span><strong>—</strong></div></div><div class="grid2"><div class="panel mini"><h3>Vehicle Planning Overview</h3><div class="inside planning-chart"><div class="chart-row"><span>Dispatched</span><strong>${o.dispatched}</strong><div class="chart-track"><i style="width:${Math.round(o.dispatched/total*100)}%"></i></div></div><div class="chart-row"><span>Onloading</span><strong>${o.onloading}</strong><div class="chart-track"><i style="width:${Math.round(o.onloading/total*100)}%"></i></div></div><div class="chart-row"><span>Pending</span><strong>${o.pending}</strong><div class="chart-track"><i style="width:${Math.round(o.pending/total*100)}%"></i></div></div></div></div><div class="panel mini"><h3>Vehicle Status Overview</h3><div class="inside">Vehicle status analytics will be expanded in later phases.</div></div><div class="panel mini"><h3>STO Overview</h3><div class="inside sto-cards"><div><span>Core Pending</span><strong>${calculateCorePending()??'—'}</strong></div><div><span>Partial Pending</span><strong>${calculatePartialPending()??'—'}</strong></div></div></div><div class="panel mini"><h3>Alerts / Exceptions</h3><div class="inside">${a.length?`<div class="tableWrap"><table class="table erp-table dashboard-alert-table"><thead><tr><th>Date</th><th>Name</th><th>Loading</th><th>Remarks</th></tr></thead><tbody>${a.map(r=>`<tr><td>${esc(dateDisplay(r.date))}</td><td>${esc(r.name)}</td><td>${esc(r.loading)}</td><td>${esc(r.remarks)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="alert-empty">No alerts to display.</div>'}</div></div></div>`}
