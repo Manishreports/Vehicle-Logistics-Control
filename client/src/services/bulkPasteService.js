@@ -38,6 +38,32 @@ function findHeaderIndex(headers, aliases) {
   return -1;
 }
 
+function parseHeaderlessRaipurRow(cells) {
+  // Headerless Raipur layout is fixed only for the non-STO prefix/suffix:
+  // Date, Loc, Plant, CFA, Weight, [one or more STO columns], Loading, Vehicle In, Vehicle Number, Vehicle Out, Slip Number.
+  // The position of Loading is therefore derived from the 4 vehicle fields at the end,
+  // not from STO count or STO content, preventing any column shifting.
+  const row = {
+    date: cells[0] ?? '', loc: cells[1] ?? '', plant: cells[2] ?? '', cfa: cells[3] ?? '', weight: cells[4] ?? '',
+    sto: [], loading: '', vehicleIn: '', vehicleNumber: '', vehicleOut: '', slipNumber: ''
+  };
+  const tail = cells.slice(5);
+  if (tail.length >= 5) {
+    const loadingIndex = tail.length - 5;
+    row.sto = tail.slice(0, loadingIndex).flatMap((value) => splitMultiValue(value)).filter((value) => validMultiValue(value));
+    row.loading = tail[loadingIndex] ?? '';
+    row.vehicleIn = tail[loadingIndex + 1] ?? '';
+    row.vehicleNumber = tail[loadingIndex + 2] ?? '';
+    row.vehicleOut = tail[loadingIndex + 3] ?? '';
+    row.slipNumber = tail[loadingIndex + 4] ?? '';
+  } else {
+    // Keep incomplete rows positionally safe rather than shifting fields left.
+    row.sto = tail.slice(0, Math.max(0, tail.length - 1)).flatMap((value) => splitMultiValue(value)).filter((value) => validMultiValue(value));
+    row.loading = tail.at(-1) ?? '';
+  }
+  return row;
+}
+
 export function parseBulkPaste(text, kind) {
   const lines = String(text ?? '').split(/\r?\n/).map((line) => line.replace(/\r$/, '')).filter((line) => line.trim());
   if (!lines.length) return { headers: [], rows: [], hadHeader: false };
@@ -58,8 +84,12 @@ export function parseBulkPaste(text, kind) {
           sto: cells.slice(5, Math.max(5, cells.length - 1)).flatMap(splitMultiValue), loading: cells[cells.length - 1] ?? ''
         })).filter((r) => Object.values(r).some(Boolean)), hadHeader: false };
       }
-      const keys = ['date', 'loc', 'plant', 'cfa', 'weight', 'sto', 'loading', 'vehicleIn', 'vehicleNumber', 'vehicleOut', 'slipNumber'];
-      return { headers: [], rows: data.map((cells) => Object.fromEntries(keys.map((key, i) => [key, cells[i] ?? '']))).filter((r) => Object.values(r).some(Boolean)), hadHeader: false };
+      return {
+        headers: [],
+        rows: data.map((cells) => parseHeaderlessRaipurRow(cells))
+          .filter((r) => Object.values(r).some((value) => Array.isArray(value) ? value.length : value)),
+        hadHeader: false
+      };
     }
     const indexes = {
       date: findHeaderIndex(headers, aliases.date), loc: findHeaderIndex(headers, aliases.loc), plant: findHeaderIndex(headers, aliases.plant),
@@ -190,23 +220,101 @@ export function aggregatePlanningRows(rows) {
 
 export function aggregateRaipurRows(rows) {
   const groups = new Map();
-  const processedRows = carryForwardRows(rows, ['date', 'plant', 'cfa', 'loading']).map((row) => ({ ...row, sto: (Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)).filter(validMultiValue) }));
+  const processedRows = carryForwardRows(rows, ['date', 'plant', 'cfa', 'loading']).map((row) => ({
+    ...row,
+    sto: (Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)).filter(validMultiValue)
+  }));
+
   processedRows.forEach((row, rawIndex) => {
     const key = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
     if (!key || key === '||') return;
-    const group = groups.get(key) || { date: row.date, locs: [], plants: [], cfa: row.cfa, weights: 0, sto: [], loading: row.loading, rawRowIndexes: [], vehicleIn: [], vehicleNumber: [], vehicleOut: [], slipNumber: [], conflicts: [] };
-    group.rawRowIndexes.push(rawIndex); group.locs.push(row.loc); group.plants.push(row.plant); group.weights += parseWeightToMT(row.weight); group.sto.push(...(Array.isArray(row.sto) ? row.sto : splitMultiValue(row.sto)));
-    group.vehicleIn.push(row.vehicleIn); group.vehicleNumber.push(row.vehicleNumber); group.vehicleOut.push(row.vehicleOut); group.slipNumber.push(row.slipNumber);
+    const group = groups.get(key) || {
+      date: row.date,
+      plants: [],
+      cfa: row.cfa,
+      weightMT: 0,
+      loading: row.loading,
+      locations: new Map(),
+      vehicleIn: [],
+      vehicleNumber: [],
+      vehicleOut: [],
+      slipNumber: [],
+      rawRowIndexes: [],
+      conflicts: []
+    };
+
+    group.rawRowIndexes.push(rawIndex);
+    group.plants.push(row.plant);
+    group.weightMT += parseWeightToMT(row.weight);
+
+    const locName = String(row.loc ?? '').trim() || '—';
+    const locKey = normalizeText(locName);
+    const location = group.locations.get(locKey) || {
+      loc: locName,
+      weightMT: 0,
+      stos: [],
+      vehicleIn: [],
+      vehicleNumber: [],
+      vehicleOut: [],
+      slipNumber: []
+    };
+    location.weightMT += parseWeightToMT(row.weight);
+    location.stos.push(...row.sto);
+    location.vehicleIn.push(row.vehicleIn);
+    location.vehicleNumber.push(row.vehicleNumber);
+    location.vehicleOut.push(row.vehicleOut);
+    location.slipNumber.push(row.slipNumber);
+    group.locations.set(locKey, location);
+
+    group.vehicleIn.push(row.vehicleIn);
+    group.vehicleNumber.push(row.vehicleNumber);
+    group.vehicleOut.push(row.vehicleOut);
+    group.slipNumber.push(row.slipNumber);
     groups.set(key, group);
   });
+
   return Array.from(groups.entries()).map(([key, group], index) => {
-    const values = { vehicleIn: uniqueOrdered(group.vehicleIn), vehicleNumber: uniqueOrdered(group.vehicleNumber), vehicleOut: uniqueOrdered(group.vehicleOut), slipNumber: uniqueOrdered(group.slipNumber) };
-    Object.entries(values).forEach(([field, list]) => { if (list.length > 1) group.conflicts.push({ field, values: list }); });
+    const values = {
+      vehicleIn: uniqueOrdered(group.vehicleIn),
+      vehicleNumber: uniqueOrdered(group.vehicleNumber),
+      vehicleOut: uniqueOrdered(group.vehicleOut),
+      slipNumber: uniqueOrdered(group.slipNumber)
+    };
+    Object.entries(values).forEach(([field, list]) => {
+      if (list.length > 1) group.conflicts.push({ field, values: list });
+    });
+
+    const locations = Array.from(group.locations.values()).map((location) => ({
+      ...location,
+      stos: uniqueOrdered(location.stos),
+      vehicleIn: uniqueOrdered(location.vehicleIn)[0] || '',
+      vehicleNumber: uniqueOrdered(location.vehicleNumber)[0] || '',
+      vehicleOut: uniqueOrdered(location.vehicleOut)[0] || '',
+      slipNumber: uniqueOrdered(location.slipNumber)[0] || ''
+    }));
+
+    const sto = uniqueOrdered(locations.flatMap((location) => location.stos));
+    const loc = locations.map((location) => location.loc);
+    const plants = uniqueOrdered(group.plants);
+
     return {
-      serialNo: index + 1, groupKey: key, date: group.date, loc: uniqueOrdered(group.locs).join(' / '), plant: uniqueOrdered(group.plants).join(' / '), cfa: group.cfa,
-      weight: `${group.weights.toFixed(3)} MT`, weightMT: group.weights, sto: uniqueOrdered(group.sto).join(' / '), loading: group.loading,
-      vehicleIn: values.vehicleIn[0] || '', vehicleNumber: values.vehicleNumber[0] || '', vehicleOut: values.vehicleOut[0] || '', slipNumber: values.slipNumber[0] || '',
-      rawRowIndexes: group.rawRowIndexes, conflicts: group.conflicts
+      serialNo: index + 1,
+      groupKey: key,
+      date: group.date,
+      loc,
+      plant: plants,
+      cfa: group.cfa,
+      weight: `${group.weightMT.toFixed(3)} MT`,
+      weightMT: group.weightMT,
+      sto,
+      loading: group.loading,
+      locations,
+      vehicleIn: values.vehicleIn[0] || '',
+      vehicleNumber: values.vehicleNumber[0] || '',
+      vehicleOut: values.vehicleOut[0] || '',
+      slipNumber: values.slipNumber[0] || '',
+      rawRowIndexes: group.rawRowIndexes,
+      conflicts: group.conflicts
     };
   });
 }
