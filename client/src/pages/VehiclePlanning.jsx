@@ -1,22 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import PageHeader from '../components/PageHeader';
-import Toolbar from '../components/Toolbar';
 import { VEHICLE_PLANNING_COLUMNS } from '../data/vehiclePlanningData';
 import { getVehiclePlanningData } from '../services/vehiclePlanningService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { displayDate } from '../services/normalization';
 import { previewBulkPaste, aggregatePlanningRows } from '../services/bulkPasteService';
 
-const FILTERS = [
-  ['planning-date', 'Date', 'date'], ['planning-loc', 'Loc', 'loc'], ['planning-plant', 'Plant', 'plant'],
-  ['planning-cfa', 'CFA', 'cfa'], ['planning-loading', 'Loading', 'loading'], ['planning-sto', 'STO', 'sto'], ['planning-vehicle-number', 'Vehicle Number', 'vehicleNumber']
-];
-
 export default function VehiclePlanning() {
-  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [filterValues, setFilterValues] = useState({});
+  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [search, setSearch] = useState('');
   const refresh = useCallback(() => setRows(getVehiclePlanningData()), []);
   useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
-  const filteredRows = useMemo(() => rows.filter((row) => Object.entries(filterValues).every(([key, value]) => !value || String(row[key] ?? '').toLowerCase().includes(value.toLowerCase()))).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })), [rows, filterValues]);
+  const filteredRows = useMemo(() => { const q = search.trim().toLowerCase(); return rows.filter((row) => !q || Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(q))).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })); }, [rows, search]);
 
   function buildPreview() { const result = previewBulkPaste(pasteText, 'planning'); if (!result.rawRowCount) { setMessage('No valid planning rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped result before importing.'); }
   function importPreview(mode) {
@@ -33,13 +26,12 @@ export default function VehiclePlanning() {
   function clearPlanning() { dataStore.clearPlanning(); setPreview(null); setPasteText(''); setMessage('Vehicle planning data cleared.'); refresh(); }
 
   return <div className="page-content">
-    <PageHeader title="Vehicle Planning" description="Vehicle / STO plan shared with the mother warehouse." />
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Planning Data</h2><p>Paste the complete planning extract. Plans are grouped by Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tSTO\tLoading\n17-Aug-2026\tDEHR\tDrools Pet Food Pvt. Ltd.\tGhaziabad 1\t300 Kgs.\t4210085514\t\tBAKAL LOADING" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearPlanning}>Clear Planning Data</button>{message && <span className="inline-message">{message}</span>}</div>
       {preview && <BulkPreview result={preview} onImport={importPreview} kind="Vehicle Planning" existingCount={dataStore.getPlanning().length} />}
     </div></section>
-    <section className="section-panel"><div className="section-panel-header"><div><h2>Planning Filters</h2><p>Filters operate on the grouped and enriched Page 1 dataset.</p></div></div><div className="section-panel-body"><Toolbar>{FILTERS.map(([id, label, key]) => <div className="field-group" key={id}><label htmlFor={id}>{label}</label><input id={id} value={filterValues[key] || ''} onChange={(e) => setFilterValues((current) => ({ ...current, [key]: e.target.value }))} placeholder={label} /></div>)}</Toolbar></div></section>
+    <section className="section-panel"><div className="section-panel-body"><div className="field-group search-field"><label htmlFor="planning-search">Search</label><input id="planning-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Vehicle Planning..." /></div></div></section>
     <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><GroupedPlanningTable rows={filteredRows} /></div></section>
   </div>;
 }

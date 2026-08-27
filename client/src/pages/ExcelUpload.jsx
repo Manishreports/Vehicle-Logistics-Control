@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import PageHeader from '../components/PageHeader';
 import SectionPanel from '../components/SectionPanel';
 import { parseExcelFile } from '../services/excelService';
 import { dataStore } from '../services/dataStore';
@@ -78,7 +77,6 @@ export default function ExcelUpload() {
 
   return (
     <div className="page-content">
-      <PageHeader title="Excel Upload" description="Import Gate In / Gate Out workbooks." />
       <SectionPanel title="Upload Excel Workbook" subtitle="Supported formats: .xlsx and .xls">
         <div className="field-group" style={{ maxWidth: 360, marginBottom: 12 }}><label htmlFor="excel-role">Import as</label><select id="excel-role" value={dataRole} onChange={(event) => setDataRole(event.target.value)}><option value="gateIn">Gate In Data</option><option value="gateOut">Gate Out Data</option></select></div>
         <label className={`upload-zone ${dragActive ? 'drag-active' : ''}`} onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }} onDragOver={(event) => { event.preventDefault(); setDragActive(true); }} onDragLeave={(event) => { event.preventDefault(); setDragActive(false); }} onDrop={onDrop}>

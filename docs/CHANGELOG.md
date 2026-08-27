@@ -78,3 +78,8 @@
 - Removed deprecated explanatory paste/grouping text.
 - Fixed header detection so `-` placeholder cells do not count as headers.
 - Kept Vehicle Planning grouping `Date + CFA + Loading`, Page 2 grouping independent, and Raipur data independent.
+
+## 2026-08-27 — UI Cleanup / Input Focus
+- Removed standalone page-title panels and legacy filter sections.
+- Added simple search controls.
+- Fixed static-app input focus loss by updating only targeted result regions during search.

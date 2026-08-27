@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import PageHeader from '../components/PageHeader';
 import KPICard from '../components/KPICard';
 import SectionPanel from '../components/SectionPanel';
 import EmptyState from '../components/EmptyState';
@@ -15,8 +14,6 @@ export default function Dashboard() {
 
   return (
     <div className="page-content">
-      <PageHeader title="Dashboard" />
-
       <section className="kpi-grid">
         <KPICard label="Total Planned Vehicles" value={metrics.totalPlannedVehicles} />
         <KPICard label="Vehicle Called" value={metrics.vehicleCalled} />
