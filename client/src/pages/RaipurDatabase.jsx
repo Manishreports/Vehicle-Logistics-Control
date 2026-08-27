@@ -28,7 +28,7 @@ export default function RaipurDatabase() {
   }
   function clearData() { dataStore.clearRaipur(); setPasteText(''); setPreview(null); setMessage('Raipur database cleared.'); refresh(); }
   return <div className="page-content">
-    <PageHeader title="Raipur Database" description="Independent manually maintained Raipur dataset. Vehicle information is supplied by user paste and is never pulled from Gate Excel." actions={<><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={clearData}>Clear Data</button></>} />
+    <PageHeader title="Raipur Database" description="Independent manually maintained Raipur dataset." />
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Raipur Data</h2><p>Paste planning and vehicle fields together. Grouping uses Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tLoading\tVehicle In\tVehicle Number\tVehicle Out\tSlip Number" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearData}>Clear Raipur Data</button>{message && <span className="inline-message">{message}</span>}</div>

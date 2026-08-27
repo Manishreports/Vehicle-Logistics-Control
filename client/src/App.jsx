@@ -10,7 +10,7 @@ import { dataStore } from './services/dataStore';
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
   { path: '/vehicle-planning', label: 'Vehicle Planning', icon: '▣' },
-  { path: '/vehicle-status', label: 'Vehicle Status Tracking', icon: '◈' },
+  { path: '/vehicle-status', label: 'Vehicle Status Records', icon: '◈' },
   { path: '/raipur-database', label: 'Raipur Database', icon: '▤' },
   { path: '/excel-upload', label: 'Excel Upload', icon: '⇧' }
 ];

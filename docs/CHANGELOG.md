@@ -1,4 +1,10 @@
 
+## 2026-08-27 - Dashboard Alerts and UI Cleanup
+- Renamed displayed Page 2 headings without changing underlying data order.
+- Removed requested top control lines and explanatory text.
+- Fixed static filter/search typing by preserving focus and selection across renders.
+- Added derived Dashboard Plan Pending / Vehicle Call Pending alerts and Page 1/Page 2 KPI counts.
+
 ## 0.2.0 - Page 1 & Page 2 business logic
 
 - Added normalized Date + CFA + Loading group keys for Vehicle Planning.

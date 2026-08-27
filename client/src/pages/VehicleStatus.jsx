@@ -28,7 +28,7 @@ export default function VehicleStatus() {
   }
   function clearStatus() { dataStore.clearStatus(); setPasteText(''); setPreview(null); setMessage('Vehicle status data cleared.'); refresh(); }
   return <div className="page-content">
-    <PageHeader title="Vehicle Status Tracking" description="Vehicle demand and operational status workspace." actions={<><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={() => setFilterValues({})}>Clear Filters</button></>} />
+    <PageHeader title="Vehicle Status Records" description="Vehicle demand and operational status workspace." />
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Vehicle Demand</h2><p>Paste Demanded Date, Required Date, Location, Loading Pt. and Weight. Page 2 groups by Demanded Date + Location + Loading Pt.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Demanded Date\tRequired Date\tLocation\tLoading Pt.\tWeight\n20-Jul-2026\t21-Jul-2026\tGhaziabad\tB-0 T-0\t17.300 MT" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearStatus}>Clear Status Data</button>{message && <span className="inline-message">{message}</span>}</div>

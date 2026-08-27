@@ -33,7 +33,7 @@ export default function VehiclePlanning() {
   function clearPlanning() { dataStore.clearPlanning(); setPreview(null); setPasteText(''); setMessage('Vehicle planning data cleared.'); refresh(); }
 
   return <div className="page-content">
-    <PageHeader title="Vehicle Planning" description="Vehicle / STO plan shared with the mother warehouse." actions={<><button className="button secondary" onClick={refresh}>↻ Refresh</button><button className="button secondary" onClick={() => setFilterValues({})}>Clear Filters</button></>} />
+    <PageHeader title="Vehicle Planning" description="Vehicle / STO plan shared with the mother warehouse." />
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Planning Data</h2><p>Paste the complete planning extract. Plans are grouped by Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tSTO\tLoading\n17-Aug-2026\tDEHR\tDrools Pet Food Pvt. Ltd.\tGhaziabad 1\t300 Kgs.\t4210085514\t\tBAKAL LOADING" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearPlanning}>Clear Planning Data</button>{message && <span className="inline-message">{message}</span>}</div>
