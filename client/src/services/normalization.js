@@ -21,7 +21,7 @@ export function normalizeGateSlipNumber(value) {
 }
 
 export function parseDateValue(value) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
   const raw = String(value ?? '').trim();
   if (!raw) return null;
   const excelSerial = Number(raw);
