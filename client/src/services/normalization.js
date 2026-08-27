@@ -23,19 +23,21 @@ export function parseDateValue(value) {
   if (/^\d+(\.\d+)?$/.test(raw) && excelSerial > 20000 && excelSerial < 80000) {
     return new Date(Date.UTC(1899, 11, 30) + excelSerial * 86400000);
   }
-  const cleaned = raw.replace(/[.]/g, '-').replace(/\//g, '-');
-  const iso = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const compact = raw.replace(/T.*$/, '').replace(/\s+00:00:00(?:\.\d+)?$/, '').trim();
+  const iso = compact.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
   if (iso) return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
-  const dmy = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})/);
-  if (dmy) {
-    let year = Number(dmy[3]);
+  const dmyNumeric = compact.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+  if (dmyNumeric) {
+    let year = Number(dmyNumeric[3]);
     if (year < 100) year += 2000;
-    return new Date(Date.UTC(year, Number(dmy[2]) - 1, Number(dmy[1])));
+    return new Date(Date.UTC(year, Number(dmyNumeric[2]) - 1, Number(dmyNumeric[1])));
   }
-  const mon = cleaned.match(/^(\d{1,2})-([A-Za-z]{3,})-(\d{4})/);
-  if (mon) {
-    const month = MONTHS[mon[2].slice(0, 3).toLowerCase()];
-    if (month !== undefined) return new Date(Date.UTC(Number(mon[3]), month, Number(mon[1])));
+  const dmyMonth = compact.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})(?:[-\s](\d{2,4}))?/);
+  if (dmyMonth) {
+    let year = dmyMonth[3] ? Number(dmyMonth[3]) : new Date().getFullYear();
+    if (year < 100) year += 2000;
+    const month = MONTHS[dmyMonth[2].slice(0, 3).toLowerCase()];
+    if (month !== undefined) return new Date(Date.UTC(year, month, Number(dmyMonth[1])));
   }
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? null : new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
@@ -50,7 +52,9 @@ export function normalizeDate(value) {
 export function displayDate(value) {
   const date = parseDateValue(value);
   if (!date) return String(value ?? '');
-  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = Object.keys(MONTHS).find((key) => MONTHS[key] === date.getUTCMonth());
+  return `${day}-${month[0].toUpperCase()}${month.slice(1)}-${date.getUTCFullYear()}`;
 }
 
 export function findHeader(headers, aliases) {

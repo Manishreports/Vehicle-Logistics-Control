@@ -1,17 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { VEHICLE_PLANNING_COLUMNS } from '../data/vehiclePlanningData';
 import { getVehiclePlanningData } from '../services/vehiclePlanningService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { displayDate } from '../services/normalization';
 import { previewBulkPaste, aggregatePlanningRows } from '../services/bulkPasteService';
 
 export default function VehiclePlanning() {
-  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [search, setSearch] = useState('');
+  const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [query, setQuery] = useState('');
   const refresh = useCallback(() => setRows(getVehiclePlanningData()), []);
   useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
-  const filteredRows = useMemo(() => { const q = search.trim().toLowerCase(); return rows.filter((row) => !q || Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(q))).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })); }, [rows, search]);
-
-  function buildPreview() { const result = previewBulkPaste(pasteText, 'planning'); if (!result.rawRowCount) { setMessage('No valid planning rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped result before importing.'); }
+  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, date: displayDate(row.date), vehicleIn: displayDate(row.vehicleIn), vehicleOut: displayDate(row.vehicleOut) })), [rows, query]);
+  const loadingPending = useMemo(() => rows.reduce((counts, row) => { const loading = String(row.loading || '').toUpperCase(); if (!row.vehicleIn && loading.includes('BAKAL')) counts.B += 1; if (!row.vehicleIn && loading.includes('TOLAGAON')) counts.T += 1; return counts; }, { B: 0, T: 0 }), [rows]);  function buildPreview() { const result = previewBulkPaste(pasteText, 'planning'); if (!result.rawRowCount) { setMessage('No valid planning rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped result before importing.'); }
   function importPreview(mode) {
     if (!preview?.rows.length) return;
     const existingFinal = dataStore.getPlanning();
@@ -31,8 +29,8 @@ export default function VehiclePlanning() {
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearPlanning}>Clear Planning Data</button>{message && <span className="inline-message">{message}</span>}</div>
       {preview && <BulkPreview result={preview} onImport={importPreview} kind="Vehicle Planning" existingCount={dataStore.getPlanning().length} />}
     </div></section>
-    <section className="section-panel"><div className="section-panel-body"><div className="field-group search-field"><label htmlFor="planning-search">Search</label><input id="planning-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Vehicle Planning..." /></div></div></section>
-    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><GroupedPlanningTable rows={filteredRows} /></div></section>
+    <section className="section-panel"><div className="section-panel-body"><div className="toolbar"><div className="field-group search-field"><label htmlFor="planning-search">Search Vehicle Planning</label><input id="planning-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Vehicle Planning..." /></div></div></div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><GroupedPlanningTable rows={filteredRows} loadingPending={loadingPending} /></div></section>
   </div>;
 }
 
@@ -47,11 +45,11 @@ function buildPlanningDisplayRows(row) {
   });
 }
 
-function GroupedPlanningTable({ rows }) {
+function GroupedPlanningTable({ rows, loadingPending = { B: 0, T: 0 } }) {
   const columns = ['S.No', 'Date', 'Loc', 'Plant', 'CFA', 'Weight', 'STO', 'Loading', 'Vehicle In', 'Vehicle Number', 'Vehicle Out', 'Slip Number'];
-  if (!rows.length) return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={12}>No vehicle planning data available.</td></tr></tbody></table></div>;
+  if (!rows.length) return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={12}>No vehicle planning data available.</td></tr></tbody></table></div>;
 
-  return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>
+  return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody>
     {rows.map((row, rowIndex) => {
       const displayRows = buildPlanningDisplayRows(row);
       const totalRows = displayRows.length || 1;
@@ -69,10 +67,10 @@ function GroupedPlanningTable({ rows }) {
         <td>{item.sto}</td>
         {childIndex === 0 && <>
           <td rowSpan={totalRows} className="plan-parent-cell">{row.loading}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.vehicleIn)}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{row.vehicleNumber}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{displayDate(row.vehicleOut)}</td>
-          <td rowSpan={totalRows} className="plan-parent-cell">{row.slipNumber}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayDate(row.vehicleIn))}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(row.vehicleNumber)}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(displayDate(row.vehicleOut))}</td>
+          <td rowSpan={totalRows} className="plan-parent-cell">{displayOrPending(row.slipNumber)}</td>
         </>}
       </tr>);
     })}
@@ -87,3 +85,5 @@ function BulkPreview({ result, onImport, kind, existingCount }) {
     <div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end', gap: 8 }}><button className="button secondary" disabled={!result.finalRows.length} onClick={() => onImport('append')}>APPEND</button><button className="button primary" disabled={!result.finalRows.length} onClick={() => onImport('replace')}>REPLACE</button></div>
   </div>;
 }
+
+function displayOrPending(value) { return value ? value : 'Pending'; }

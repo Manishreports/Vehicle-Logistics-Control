@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { displayDate } from './normalization';
 
 export async function parseExcelFile(file) {
   const buffer = await file.arrayBuffer();
@@ -18,7 +19,10 @@ export async function parseExcelFile(file) {
 
 function formatCell(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return new Intl.DateTimeFormat('en-GB').format(value);
+    return displayDate(value);
+  }
+  if (typeof value === 'string' && /^\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4}(?:\s+.*)?$/.test(value.trim())) {
+    return displayDate(value);
   }
   if (value === null || value === undefined) return '';
   return String(value);

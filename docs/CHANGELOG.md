@@ -79,7 +79,6 @@
 - Fixed header detection so `-` placeholder cells do not count as headers.
 - Kept Vehicle Planning grouping `Date + CFA + Loading`, Page 2 grouping independent, and Raipur data independent.
 
-## 2026-08-27 — UI Cleanup / Input Focus
-- Removed standalone page-title panels and legacy filter sections.
-- Added simple search controls.
-- Fixed static-app input focus loss by updating only targeted result regions during search.
+- 2026-08-27: Added global Back to Top, pending vehicle-field display, B/T loading pending counts, robust DD-MM-YYYY date parsing, Page 2 vehicle enrichment display, STO Overview placeholders, and Vehicle Planning Overview chart.
+
+- 2026-08-27: Enhancement pass verified static/source behavior; production Vite build remains blocked by npm registry DNS/network availability in the execution environment.

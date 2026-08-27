@@ -6,6 +6,7 @@ import VehicleStatus from './pages/VehicleStatus';
 import RaipurDatabase from './pages/RaipurDatabase';
 import ExcelUpload from './pages/ExcelUpload';
 import { dataStore } from './services/dataStore';
+import BackToTop from './components/BackToTop';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
@@ -77,6 +78,7 @@ function AppShell() {
         <Outlet />
       </main>
 
+      <BackToTop />
       <footer className="status-bar">
         <div>System Status: <strong>Ready</strong></div>
         <div>Environment: <strong>Foundation</strong></div>

@@ -3,13 +3,14 @@ import KPICard from '../components/KPICard';
 import SectionPanel from '../components/SectionPanel';
 import EmptyState from '../components/EmptyState';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
-import { getDashboardAlerts, getDashboardMetrics } from '../services/dashboardService';
+import { calculateCorePending, calculatePartialPending, getDashboardAlerts, getDashboardMetrics, getVehiclePlanningOverview } from '../services/dashboardService';
 import { displayDate } from '../services/normalization';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(getDashboardMetrics);
   const [alerts, setAlerts] = useState(getDashboardAlerts);
-  const refresh = useCallback(() => { setMetrics(getDashboardMetrics()); setAlerts(getDashboardAlerts()); }, []);
+  const [overview, setOverview] = useState(getVehiclePlanningOverview);
+  const refresh = useCallback(() => { setMetrics(getDashboardMetrics()); setAlerts(getDashboardAlerts()); setOverview(getVehiclePlanningOverview()); }, []);
   useEffect(() => useDataStoreSubscription(refresh), [refresh]);
 
   return (
@@ -23,14 +24,21 @@ export default function Dashboard() {
       </section>
 
       <div className="dashboard-grid">
-        <SectionPanel title="Vehicle Planning Overview" subtitle="Reserved for future planning analytics">
-          <EmptyState title="Planning overview not yet connected" description="Future phases can populate planned, pending, cancelled and date-wise planning data here." />
+        <SectionPanel title="Vehicle Planning Overview">
+          <div className="planning-overview">
+            <OverviewBar label="Dispatched" value={overview.dispatched} total={Math.max(1, overview.dispatched + overview.onloading + overview.pending)} />
+            <OverviewBar label="Onloading" value={overview.onloading} total={Math.max(1, overview.dispatched + overview.onloading + overview.pending)} />
+            <OverviewBar label="Pending" value={overview.pending} total={Math.max(1, overview.dispatched + overview.onloading + overview.pending)} />
+          </div>
         </SectionPanel>
         <SectionPanel title="Vehicle Status Overview" subtitle="Reserved for future status analytics">
-          <EmptyState title="Vehicle status not yet connected" description="Vehicle In, Vehicle Out, pending and dispatched metrics will be connected in a later phase." />
+          <EmptyState title="Vehicle status overview not yet connected" description="Additional operational status analytics can be connected in a later phase." />
         </SectionPanel>
-        <SectionPanel title="STO Overview" subtitle="Reserved for future STO analytics">
-          <EmptyState title="STO overview not yet connected" description="Total, completed, pending and exception STO metrics are reserved for the next phase." />
+        <SectionPanel title="STO Overview">
+          <div className="sto-overview-grid">
+            <div className="sto-metric"><span>Core Pending</span><strong>{calculateCorePending() ?? '—'}</strong></div>
+            <div className="sto-metric"><span>Partial Pending</span><strong>{calculatePartialPending() ?? '—'}</strong></div>
+          </div>
         </SectionPanel>
         <SectionPanel title="Alerts / Exceptions" subtitle="Plan and vehicle-call group comparison">
           {alerts.length ? (
@@ -47,4 +55,9 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+function OverviewBar({ label, value, total }) {
+  const width = total ? Math.round((value / total) * 100) : 0;
+  return <div className="overview-bar"><div className="overview-bar-head"><span>{label}</span><strong>{value}</strong></div><div className="overview-track"><div className="overview-fill" style={{ width: `${width}%` }} /></div></div>;
 }

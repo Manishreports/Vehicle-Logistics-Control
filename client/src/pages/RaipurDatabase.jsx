@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Toolbar from '../components/Toolbar';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
 import { displayDate } from '../services/normalization';
 import { getRaipurDatabaseData } from '../services/raipurDatabaseService';
@@ -31,7 +32,7 @@ export default function RaipurDatabase() {
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearData}>Clear Raipur Data</button>{message && <span className="inline-message">{message}</span>}</div>
       {preview && <BulkPreview result={preview} onImport={importPreview} existingCount={dataStore.getRaipur().length} />}
     </div></section>
-    <section className="section-panel"><div className="section-panel-header"><div><h2>Raipur Records</h2><p>{visibleRows.length} final plan(s). This dataset remains independent from Vehicle Planning and Vehicle Status Tracking.</p></div></div><div className="section-panel-body"><div className="field-group search-field"><label htmlFor="raipur-search">Search</label><input id="raipur-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Raipur Database..." /></div></div><div className="section-panel-body table-section-body"><RaipurGroupedTable rows={visibleRows} /></div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Raipur Records</h2><p>{visibleRows.length} final plan(s). This dataset remains independent from Vehicle Planning and Vehicle Status Tracking.</p></div></div><Toolbar><div className="field-group search-field"><label htmlFor="raipur-search">Search</label><input id="raipur-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Raipur records" /></div></Toolbar><div className="section-panel-body table-section-body"><RaipurGroupedTable rows={visibleRows} /></div></section>
   </div>;
 }
 function RaipurGroupedTable({ rows }) {
