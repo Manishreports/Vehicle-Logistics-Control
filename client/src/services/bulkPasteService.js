@@ -118,7 +118,15 @@ export function parseBulkPaste(text, kind) {
   const keys = Object.keys(aliases);
   const rows = (isHeader ? lines.slice(1) : lines).map((line) => {
     const cells = splitLine(line, delimiter);
-    if (!isHeader) return Object.fromEntries(keys.map((key, i) => [key, cells[i] ?? '']));
+    if (!isHeader) {
+      return {
+        demandedDate: cells[0] ?? '',
+        requiredDate: cells[1] ?? '',
+        loadingPoint: cells[2] ?? '',
+        location: cells[3] ?? '',
+        weight: cells[4] ?? ''
+      };
+    }
     return Object.fromEntries(keys.map((key) => [key, indexes[key] >= 0 ? cells[indexes[key]] ?? '' : '']));
   }).filter((r) => Object.values(r).some(Boolean));
   return { headers, rows, hadHeader: isHeader };
