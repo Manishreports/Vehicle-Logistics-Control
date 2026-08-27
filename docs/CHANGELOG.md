@@ -82,3 +82,11 @@
 - 2026-08-27: Added global Back to Top, pending vehicle-field display, B/T loading pending counts, robust DD-MM-YYYY date parsing, Page 2 vehicle enrichment display, STO Overview placeholders, and Vehicle Planning Overview chart.
 
 - 2026-08-27: Enhancement pass verified static/source behavior; production Vite build remains blocked by npm registry DNS/network availability in the execution environment.
+
+## Excel Date Source Fix
+
+- Inspected the user-provided workbook as the date source of truth.
+- Confirmed Gate In Date and Gate Out Date are native Excel serial date cells (`46245`) with `mm-dd-yy` formatting, corresponding to `11-Aug-2026`.
+- Updated XLSX reading to preserve native date values (`cellDates: true`, `raw: true`).
+- Added deterministic date-column handling for native Date values, Excel serials, and explicit text dates.
+- Preserved existing Gate Slip, Vehicle In, Vehicle Number and Vehicle Out lookup behavior.

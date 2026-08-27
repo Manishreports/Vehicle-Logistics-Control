@@ -39,6 +39,7 @@ export function parseDateValue(value) {
     const month = MONTHS[dmyMonth[2].slice(0, 3).toLowerCase()];
     if (month !== undefined) return new Date(Date.UTC(year, month, Number(dmyMonth[1])));
   }
+  if (/^\d{1,2}[-\/.]\d{1,2}(?:$|\s)/.test(raw)) return null;
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? null : new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
 }
