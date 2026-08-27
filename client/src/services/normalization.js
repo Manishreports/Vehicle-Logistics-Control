@@ -15,6 +15,11 @@ export function normalizeLooseText(value) {
   return normalizeText(value).replace(/[\s\-_\/]+/g, '');
 }
 
+export function normalizeGateSlipNumber(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/\u00A0/g, ' ').trim();
+}
+
 export function parseDateValue(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   const raw = String(value ?? '').trim();

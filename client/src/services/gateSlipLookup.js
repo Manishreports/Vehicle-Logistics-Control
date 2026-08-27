@@ -1,4 +1,4 @@
-import { GATE_HEADERS, findHeader, groupKey, normalizeDate, normalizeText } from './normalization';
+import { GATE_HEADERS, findHeader, groupKey, normalizeDate, normalizeText, normalizeGateSlipNumber } from './normalization';
 
 function buildColumns(rows) {
   const headers = Object.keys(rows[0] || {});
@@ -18,13 +18,13 @@ function collectDirectStoMatches(rows, cols) {
   const map = new Map();
   if (!cols.sto || !cols.slip) return map;
   rows.forEach((row) => {
-    const slip = String(row[cols.slip] ?? '').trim();
+    const slip = normalizeGateSlipNumber(row[cols.slip]);
     if (!slip) return;
     String(row[cols.sto] ?? '').split(/[,;\n|\/]+/).map((s) => s.trim()).filter(Boolean).forEach((sto) => {
       const key = normalizeText(sto);
       if (!key) return;
       const existing = map.get(key) || new Set();
-      existing.add(slip);
+      existing.add(normalizeGateSlipNumber(slip));
       map.set(key, existing);
     });
   });
@@ -36,7 +36,7 @@ export function indexGateInRows(rows) {
   const stoToSlips = collectDirectStoMatches(rows, cols);
   const slipMap = new Map();
   rows.forEach((row) => {
-    const slip = String(row[cols.slip] ?? '').trim();
+    const slip = normalizeGateSlipNumber(row[cols.slip]);
     if (!slip) return;
     const current = slipMap.get(slip) || { slipNumber: slip, vehicleIn: '', vehicleNumber: '', date: '', cfa: '', loading: '' };
     current.vehicleIn ||= cols.inDate ? row[cols.inDate] : '';
@@ -53,7 +53,7 @@ export function indexGateOutRows(rows) {
   const cols = buildColumns(rows);
   const slipMap = new Map();
   rows.forEach((row) => {
-    const slip = String(row[cols.slip] ?? '').trim();
+    const slip = normalizeGateSlipNumber(row[cols.slip]);
     if (!slip) return;
     const current = slipMap.get(slip) || { slipNumber: slip, vehicleOut: '' };
     current.vehicleOut ||= cols.outDate ? row[cols.outDate] : '';
@@ -124,10 +124,10 @@ export function resolveStatusEnrichment(statusRows, planningRows, gateInRows, ga
   const conflicts = [];
   planningRows.forEach((row, index) => {
     const key = groupKey({ date: row.date, cfa: row.cfa, loading: row.loading });
-    const slip = String(row.slipNumber ?? '').trim();
+    const slip = normalizeGateSlipNumber(row.slipNumber);
     if (!key || !slip) return;
     const existing = page1Groups.get(key) || new Set();
-    existing.add(slip);
+    existing.add(normalizeGateSlipNumber(slip));
     page1Groups.set(key, existing);
   });
   page1Groups.forEach((slips, key) => {
