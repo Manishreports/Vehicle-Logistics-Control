@@ -1,14 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getVehiclePlanningData } from '../services/vehiclePlanningService';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
-import { displayBusinessDate } from '../services/dateService.js';
+import { displayBusinessDate, normalizeBusinessDate } from '../services/dateService.js';
 import { previewBulkPaste, aggregatePlanningRows } from '../services/bulkPasteService';
 
 export default function VehiclePlanning() {
   const [rows, setRows] = useState([]); const [pasteText, setPasteText] = useState(''); const [preview, setPreview] = useState(null); const [message, setMessage] = useState(''); const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const alertType = searchParams.get('alertType') || '';
+  const alertFocus = useMemo(() => {
+    try {
+      const raw = searchParams.get('alertFocus');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  }, [searchParams]);
+  const hasAlertFocus = Boolean(alertType || alertFocus.length);
   const refresh = useCallback(() => setRows(getVehiclePlanningData()), []);
   useEffect(() => { refresh(); return useDataStoreSubscription(refresh); }, [refresh]);
-  const filteredRows = useMemo(() => rows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, date: displayBusinessDate(row.date), vehicleIn: displayBusinessDate(row.vehicleIn), vehicleOut: displayBusinessDate(row.vehicleOut) })), [rows, query]);
+  const filteredRows = useMemo(() => {
+    const focusedRows = hasAlertFocus && alertType === 'Vehicle Call Pending'
+      ? rows.filter((row) => alertFocus.some((focus) =>
+          normalizeBusinessDate(row.date) === normalizeBusinessDate(focus.date)
+          && String(row.cfa ?? '').trim().toLowerCase() === String(focus.name ?? '').trim().toLowerCase()
+          && String(row.loading ?? '').trim().toLowerCase() === String(focus.loading ?? '').trim().toLowerCase()
+        ))
+      : rows;
+    return focusedRows.filter((row) => !query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())).map((row) => ({ ...row, date: displayBusinessDate(row.date), vehicleIn: displayBusinessDate(row.vehicleIn), vehicleOut: displayBusinessDate(row.vehicleOut) }));
+  }, [rows, query, alertType, alertFocus, hasAlertFocus]);
   const loadingPending = useMemo(() => rows.reduce((counts, row) => { const loading = String(row.loading || '').toUpperCase(); if (!row.vehicleIn && loading.includes('BAKAL')) counts.B += 1; if (!row.vehicleIn && loading.includes('TOLAGAON')) counts.T += 1; return counts; }, { B: 0, T: 0 }), [rows]);  function buildPreview() { const result = previewBulkPaste(pasteText, 'planning'); if (!result.rawRowCount) { setMessage('No valid planning rows found in the pasted data.'); setPreview(null); return; } setPreview(result); setMessage('Preview ready. Review the grouped result before importing.'); }
   function importPreview(mode) {
     if (!preview?.rows.length) return;
@@ -29,8 +49,8 @@ export default function VehiclePlanning() {
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearPlanning}>Clear Planning Data</button>{message && <span className="inline-message">{message}</span>}</div>
       {preview && <BulkPreview result={preview} onImport={importPreview} kind="Vehicle Planning" existingCount={dataStore.getPlanning().length} />}
     </div></section>
-    <section className="section-panel"><div className="section-panel-body"><div className="toolbar"><div className="field-group search-field"><label htmlFor="planning-search">Search Vehicle Planning</label><input id="planning-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Vehicle Planning..." /></div></div></div></section>
-    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body"><GroupedPlanningTable rows={filteredRows} loadingPending={loadingPending} /></div></section>
+    <section className="section-panel"><div className="section-panel-body"><div className="toolbar"><div className="field-group search-field"><label htmlFor="planning-search">Search Vehicle Planning</label><input id="planning-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Vehicle Planning..." /></div>{hasAlertFocus && <button className="button secondary" type="button" onClick={() => { setSearchParams({}); setQuery(''); }}>Clear Alert Focus</button>}</div></div></section>
+    <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body">{hasAlertFocus && filteredRows.length === 0 && <div className="inline-message">No matching Vehicle Planning Record found for this Vehicle Call Pending alert.</div>}<GroupedPlanningTable rows={filteredRows} loadingPending={loadingPending} /></div></section>
   </div>;
 }
 

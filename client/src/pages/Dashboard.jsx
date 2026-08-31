@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import KPICard from '../components/KPICard';
 import SectionPanel from '../components/SectionPanel';
 import EmptyState from '../components/EmptyState';
 import { dataStore, useDataStoreSubscription } from '../services/dataStore';
-import { calculateCorePending, calculatePartialPending, getDashboardAlerts, getDashboardMetrics, getVehiclePlanningOverview } from '../services/dashboardService';
+import { calculateCorePending, calculatePartialPending, getDashboardAlertCounts, getDashboardAlerts, getDashboardMetrics, getVehiclePlanningOverview } from '../services/dashboardService';
 import { displayBusinessDate } from '../services/dateService.js';
 import { deleteLoadingPointMapping, getLoadingPointMappings, saveLoadingPointMapping, updateLoadingPointMapping } from '../services/loadingPointMappingService.js';
 
@@ -11,17 +12,50 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(getDashboardMetrics);
   const [alerts, setAlerts] = useState(getDashboardAlerts);
   const [overview, setOverview] = useState(getVehiclePlanningOverview);
-  const refresh = useCallback(() => { setMetrics(getDashboardMetrics()); setAlerts(getDashboardAlerts()); setOverview(getVehiclePlanningOverview()); }, []);
+  const [alertCounts, setAlertCounts] = useState(getDashboardAlertCounts);
+  const refresh = useCallback(() => { setMetrics(getDashboardMetrics()); setAlerts(getDashboardAlerts()); setAlertCounts(getDashboardAlertCounts()); setOverview(getVehiclePlanningOverview()); }, []);
   useEffect(() => useDataStoreSubscription(refresh), [refresh]);
+
+  const navigate = useNavigate();
+  const alertTargetMap = {
+    'Plan Pending': '/vehicle-status',
+    'Vehicle Call Pending': '/vehicle-planning'
+  };
+
+  const buildAlertFocusParams = (alertsToFocus) => {
+    const params = new URLSearchParams();
+    const first = alertsToFocus[0] || {};
+    params.set('alertType', String(first.remarks ?? ''));
+    params.set('alertFocus', JSON.stringify(alertsToFocus.map((alert) => ({
+      date: alert.date ?? '',
+      name: alert.name ?? '',
+      loading: alert.loading ?? '',
+      remarks: alert.remarks ?? ''
+    }))));
+    return params;
+  };
+
+  const navigateToAlert = (alert) => {
+    const target = alertTargetMap[alert.remarks] || '/vehicle-status';
+    const params = buildAlertFocusParams([alert]);
+    navigate(target + '?' + params.toString());
+  };
+
+  const navigateToAlertSummary = (type) => {
+    const matching = alerts.filter((alert) => alert.remarks === type);
+    const target = alertTargetMap[type] || '/vehicle-status';
+    const params = buildAlertFocusParams(matching);
+    navigate(target + '?' + params.toString());
+  };
 
   return (
     <div className="page-content">
       <section className="kpi-grid">
         <KPICard label="Total Planned Vehicles" value={metrics.totalPlannedVehicles} />
         <KPICard label="Vehicle Called" value={metrics.vehicleCalled} />
-        <KPICard label="Pending Vehicles" tone="warning" />
-        <KPICard label="Dispatched Vehicles" tone="success" />
-        <KPICard label="Cancelled Vehicles" tone="danger" />
+        <KPICard label="Pending Vehicles" value={metrics.pendingVehicles} tone="warning" />
+        <KPICard label="Dispatched Vehicles" value={metrics.dispatchedVehicles} tone="success" />
+        <KPICard label="Cancelled Vehicles" value={metrics.cancelledVehicles} tone="danger" />
       </section>
 
       <div className="dashboard-grid">
@@ -42,12 +76,16 @@ export default function Dashboard() {
           </div>
         </SectionPanel>
         <LoadingPointMatchPanel />
-        <SectionPanel title="Alerts / Exceptions" subtitle="Plan and vehicle-call group comparison">
+        <SectionPanel title="Alerts / Exceptions" subtitle="Click an alert to open the relevant record(s).">
+          <div className="alert-summary-row">
+            <button type="button" className="alert-summary-button plan" onClick={() => navigateToAlertSummary('Plan Pending')}><span>Plan Pending</span><strong>{alertCounts.planPending}</strong></button>
+            <button type="button" className="alert-summary-button call" onClick={() => navigateToAlertSummary('Vehicle Call Pending')}><span>Vehicle Call Pending</span><strong>{alertCounts.vehicleCallPending}</strong></button>
+          </div>
           {alerts.length ? (
             <div className="table-wrap">
               <table className="enterprise-table dashboard-alert-table">
                 <thead><tr><th>Date</th><th>Name</th><th>Loading</th><th>Remarks</th></tr></thead>
-                <tbody>{alerts.map((alert, index) => <tr key={`${alert.remarks}-${alert.date}-${alert.name}-${alert.loading}-${index}`}><td>{displayBusinessDate(alert.date)}</td><td>{alert.name}</td><td>{alert.loading}</td><td>{alert.remarks}</td></tr>)}</tbody>
+                <tbody>{alerts.map((alert, index) => <tr key={`${alert.remarks}-${alert.date}-${alert.name}-${alert.loading}-${index}`} className="dashboard-alert-row" tabIndex={0} onClick={() => navigateToAlert(alert)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigateToAlert(alert); } }}><td>{displayBusinessDate(alert.date)}</td><td>{alert.name}</td><td>{alert.loading}</td><td>{alert.remarks}</td></tr>)}</tbody>
               </table>
             </div>
           ) : (

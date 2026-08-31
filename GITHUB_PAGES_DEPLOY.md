@@ -1,10 +1,18 @@
-# GitHub Pages deployment
+# GitHub Pages Deployment
 
-This project contains a browser-ready root `index.html`, so GitHub Pages can publish the repository root directly without a Vite build.
+The application is deployed through GitHub Actions.
 
-## Recommended Pages setting
-Settings -> Pages -> Build and deployment -> Source -> Deploy from a branch -> `main` -> `/ (root)`.
+## Deployment flow
 
-The repository root already contains the files required by GitHub Pages.
+GitHub repository (`main`)
+→ GitHub Actions
+→ Node.js 22
+→ `npm install`
+→ `npm run build`
+→ Vite `dist/`
+→ GitHub Pages
 
-The React/Vite source remains under `client/` and `vite.config.js` for future development. The root page is a deployment-safe fallback for Phase 1 so the site does not depend on Actions or a server runtime.
+The repository root is source code. Root-level compiled `assets/app.js` / `assets/app.css`
+are not committed deployment artifacts. Vite generates the browser assets inside `dist/`.
+
+The workflow is `.github/workflows/deploy-pages.yml`.

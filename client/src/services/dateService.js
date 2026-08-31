@@ -9,7 +9,7 @@ const MAX_EXCEL_SERIAL = 2958465;
 function pad2(value) { return String(value).padStart(2, '0'); }
 function pad4(value) { return String(value).padStart(4, '0'); }
 
-export function isValidBusinessDate(year, month, day) {
+function isValidBusinessDate(year, month, day) {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
   if (month < 1 || month > 12 || day < 1 || day > 31) return false;
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
@@ -120,8 +120,3 @@ export function displayBusinessDate(value, options = {}) {
   return formatBusinessDate(value, options);
 }
 
-export function isCanonicalBusinessDate(value) {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && isValidBusinessDate(Number(value.slice(0, 4)), Number(value.slice(5, 7)), Number(value.slice(8, 10)));
-}
-
-export const BUSINESS_DATE_FORMAT = 'YYYY-MM-DD';
