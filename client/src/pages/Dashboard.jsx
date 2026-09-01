@@ -55,19 +55,6 @@ export default function Dashboard() {
   const dispatchedPct = (overview.dispatched / chartTotal) * 100;
   const onloadingPct = ((overview.dispatched + overview.onloading) / chartTotal) * 100;
 
-  function resetApplication() {
-    if (!window.confirm('Are you sure you want to reset the application?\n\nAll planning, status, Raipur and uploaded Excel data will be removed.')) return;
-    const keys = [
-      'vlc.vehiclePlanningData','vlc.vehiclePlanningRawData',
-      'vlc.vehicleStatusTrackingData','vlc.vehicleStatusTrackingRawData',
-      'vlc.raipurDatabaseData','vlc.raipurDatabaseRawData',
-      'vlc.gateInData','vlc.gateOutData','vlc.gateInMeta','vlc.gateOutMeta',
-      'vlc.loadingPointMappings','vlc.headerSettings'
-    ];
-    keys.forEach((key) => window.localStorage.removeItem(key));
-    window.dispatchEvent(new CustomEvent('vlc-data-changed'));
-    window.location.reload();
-  }
 
   return (
     <div className="page-content">
@@ -122,9 +109,6 @@ export default function Dashboard() {
             <EmptyState title="No alerts to display" description="Plan and vehicle-call groups are currently matched." />
           )}
         </SectionPanel>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <button className="button secondary reset-card" type="button" onClick={resetApplication}>Reset Application</button>
       </div>
     </div>
   );

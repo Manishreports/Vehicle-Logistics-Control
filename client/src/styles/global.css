@@ -281,3 +281,7 @@ input:disabled, select:disabled { background: #f1f4f2; }
 .records-polished .enterprise-table td { font-size:11px; }
 .records-polished .enterprise-table th { letter-spacing:.1px; }
 @media (max-width: 900px) { .dashboard-chart-card { flex-direction:column; align-items:center; } .dashboard-grid .section-panel:first-child { max-width:none; } }
+.import-ready-bar { margin-top: 10px; border: 1px solid #cfd8d4; background: #fbfcfc; padding: 9px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #53645e; font-size: 11px; }
+.import-ready-actions { display: flex; gap: 8px; }
+.import-ready-reset { margin-top: 12px; display: flex; justify-content: flex-end; }
+

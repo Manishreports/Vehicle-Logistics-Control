@@ -47,6 +47,7 @@ export default function VehicleStatus() {
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Vehicle Demand</h2><p>Paste Demanded Date, Required Date, Location, Loading Pt. and Weight. Page 2 groups by Demanded Date + Location + Loading Pt.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Demanded Date\tRequired Date\tLocation\tLoading Pt.\tWeight\n20-Jul-2026\t21-Jul-2026\tGhaziabad\tB-0 T-0\t17.300 MT" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearStatus}>Clear Status Data</button>{message && <span className="inline-message">{message}</span>}</div>
+      {preview && <ImportReadyBar result={preview} existingCount={rows.length} onImport={importPreview} label="Status" />}
 
     </div></section>
     <section className="section-panel"><div className="section-panel-body"><div className="toolbar"><div className="field-group search-field"><label htmlFor="status-search">Search Vehicle Status Records</label><input id="status-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Vehicle Status Records..." /></div>{hasAlertFocus && <button className="button secondary" type="button" onClick={() => { setSearchParams({}); setQuery(''); }}>Clear Alert Focus</button>}</div></div></section>
@@ -54,12 +55,10 @@ export default function VehicleStatus() {
   </div>;
 }
 
-function BulkPreview({ result, onImport, existingCount }) {
-  const sample = result.finalRows.slice(0, 20);
-  return <div style={{ marginTop: 14, border: '1px solid #d6dde1', background: '#fafcfc' }}>
-    <div style={{ padding: '10px 12px', borderBottom: '1px solid #d6dde1', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><strong>Bulk Paste Preview</strong><span>Raw Rows: <b>{result.rawRowCount}</b> · Final Groups: <b>{result.finalRowCount}</b> · Existing: <b>{existingCount}</b></span></div>
-    <div className="table-wrap"><table className="enterprise-table"><thead><tr><th>S No</th><th>Demanded Date</th><th>Required Date</th><th>Location</th><th>Loading Pt.</th><th>Weight</th></tr></thead><tbody>{sample.map((row, i) => <tr key={row.groupKey || i}><td>{row.serialNo}</td><td>{displayBusinessDate(row.demandedDate)}</td><td>{(row.requiredDates || []).map((value) => displayBusinessDate(value)).join(' / ')}</td><td>{row.location}</td><td>{row.loadingPoint}</td><td>{row.weight}</td></tr>)}{!sample.length && <tr><td colSpan="6">No grouped demand was produced.</td></tr>}</tbody></table></div>
-    <div style={{ padding: 10, display: 'flex', justifyContent: 'flex-end', gap: 8 }}><button className="button secondary" disabled={!result.finalRows.length} onClick={() => onImport('append')}>APPEND</button><button className="button primary" disabled={!result.finalRows.length} onClick={() => onImport('replace')}>REPLACE</button></div>
+function ImportReadyBar({ result, onImport, existingCount, label }) {
+  return <div className="import-ready-bar" role="status">
+    <span><strong>Ready to import</strong> · Raw Rows: <b>{result.rawRowCount}</b> · Final {label === 'Status' ? 'Groups' : 'Plans'}: <b>{result.finalRowCount}</b> · Existing: <b>{existingCount}</b></span>
+    <div className="import-ready-actions"><button className="button secondary" disabled={!result.finalRows.length} onClick={() => onImport('append')}>APPEND</button><button className="button primary" disabled={!result.finalRows.length} onClick={() => onImport('replace')}>REPLACE</button></div>
   </div>;
 }
 

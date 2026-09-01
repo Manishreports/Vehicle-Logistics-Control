@@ -70,6 +70,19 @@ export default function ExcelUpload() {
   function resetUpload() {
     setWorkbook(null); setFileMeta(null); setSelectedSheet(''); setQuery(''); setPage(1); setStatus({ type: 'idle', message: '' });
   }
+  function resetApplication() {
+    if (!window.confirm('Are you sure you want to reset the application?\n\nAll planning, status, Raipur and uploaded Excel data will be removed.')) return;
+    const keys = [
+      'vlc.vehiclePlanningData','vlc.vehiclePlanningRawData',
+      'vlc.vehicleStatusTrackingData','vlc.vehicleStatusTrackingRawData',
+      'vlc.raipurDatabaseData','vlc.raipurDatabaseRawData',
+      'vlc.gateInData','vlc.gateOutData','vlc.gateInMeta','vlc.gateOutMeta',
+      'vlc.loadingPointMappings','vlc.headerSettings'
+    ];
+    keys.forEach((key) => window.localStorage.removeItem(key));
+    window.dispatchEvent(new CustomEvent('vlc-data-changed'));
+    window.location.reload();
+  }
   function onDrop(event) { event.preventDefault(); setDragActive(false); handleFile(event.dataTransfer.files?.[0]); }
   const startRow = filteredRows.length ? (safePage - 1) * pageSize + 1 : 0;
   const endRow = Math.min(safePage * pageSize, filteredRows.length);
@@ -93,6 +106,7 @@ export default function ExcelUpload() {
           <InfoItem label="Sheet" value={gateMeta?.sheetName || '—'} />
           <InfoItem label="Status" value={gateMeta?.fileName ? 'Ready' : 'Not imported'} valueClass={gateMeta?.fileName ? 'success-text' : ''} />
         </div>
+        <div className="import-ready-reset"><button className="button secondary" type="button" onClick={resetApplication}>Reset Application</button></div>
       </SectionPanel>
 
       {fileMeta && <SectionPanel title="File Information" subtitle="Workbook metadata detected from the selected file."><div className="file-info-grid"><InfoItem label="File Name" value={fileMeta.name} /><InfoItem label="File Size" value={fileMeta.size} /><InfoItem label="Sheets" value={fileMeta.sheets} /><InfoItem label="Status" value="Ready" valueClass="success-text" /></div></SectionPanel>}
