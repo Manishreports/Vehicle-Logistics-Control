@@ -47,7 +47,7 @@ export default function VehiclePlanning() {
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Planning Data</h2><p>Paste the complete planning extract. Plans are grouped by Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tSTO\tLoading\n17-Aug-2026\tDEHR\tDrools Pet Food Pvt. Ltd.\tGhaziabad 1\t300 Kgs.\t4210085514\t\tBAKAL LOADING" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearPlanning}>Clear Planning Data</button>{message && <span className="inline-message">{message}</span>}</div>
-      {preview && <BulkPreview result={preview} onImport={importPreview} kind="Vehicle Planning" existingCount={dataStore.getPlanning().length} />}
+
     </div></section>
     <section className="section-panel"><div className="section-panel-body"><div className="toolbar"><div className="field-group search-field"><label htmlFor="planning-search">Search Vehicle Planning</label><input id="planning-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Vehicle Planning..." /></div>{hasAlertFocus && <button className="button secondary" type="button" onClick={() => { setSearchParams({}); setQuery(''); }}>Clear Alert Focus</button>}</div></div></section>
     <section className="section-panel"><div className="section-panel-header"><div><h2>Vehicle Planning Records</h2><p>{filteredRows.length} final plan(s). Gate fields are enriched from separate Gate In / Gate Out datasets.</p></div></div><div className="section-panel-body table-section-body">{hasAlertFocus && filteredRows.length === 0 && <div className="inline-message">No matching Vehicle Planning Record found for this Vehicle Call Pending alert.</div>}<GroupedPlanningTable rows={filteredRows} loadingPending={loadingPending} /></div></section>
@@ -67,9 +67,9 @@ function buildPlanningDisplayRows(row) {
 
 function GroupedPlanningTable({ rows, loadingPending = { B: 0, T: 0 } }) {
   const columns = ['S.No', 'Date', 'Loc', 'Plant', 'CFA', 'Weight', 'STO', 'Loading', 'Vehicle In', 'Vehicle Number', 'Vehicle Out', 'Slip Number'];
-  if (!rows.length) return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={12}>No vehicle planning data available.</td></tr></tbody></table></div>;
+  if (!rows.length) return <div className="table-wrap records-polished"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={12}>No vehicle planning data available.</td></tr></tbody></table></div>;
 
-  return <div className="table-wrap"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody>
+  return <div className="table-wrap records-polished"><table className="enterprise-table grouped-planning-table"><thead><tr>{columns.map((label) => <th key={label}>{label === 'Loading' ? <>Loading <span className="loading-status">B-{loadingPending.B}<br />T-{loadingPending.T}</span></> : label}</th>)}</tr></thead><tbody>
     {rows.map((row, rowIndex) => {
       const displayRows = buildPlanningDisplayRows(row);
       const totalRows = displayRows.length || 1;

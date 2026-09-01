@@ -30,7 +30,7 @@ export default function RaipurDatabase() {
     <section className="section-panel"><div className="section-panel-header"><div><h2>Bulk Paste Raipur Data</h2><p>Paste planning and vehicle fields together. Grouping uses Date + CFA + Loading; Loc and STO do not split a plan.</p></div></div><div className="section-panel-body">
       <textarea className="paste-area" value={pasteText} onChange={(e) => { setPasteText(e.target.value); setPreview(null); }} placeholder="Date\tLoc\tPlant\tCFA\tWeight\tSTO\tLoading\tVehicle In\tVehicle Number\tVehicle Out\tSlip Number" />
       <div className="input-action-row"><button className="button primary" onClick={buildPreview}>Preview Bulk Paste</button><button className="button secondary" onClick={clearData}>Clear Raipur Data</button>{message && <span className="inline-message">{message}</span>}</div>
-      {preview && <BulkPreview result={preview} onImport={importPreview} existingCount={dataStore.getRaipur().length} />}
+
     </div></section>
     <section className="section-panel"><div className="section-panel-header"><div><h2>Raipur Records</h2><p>{visibleRows.length} final plan(s). This dataset remains independent from Vehicle Planning and Vehicle Status Tracking.</p></div></div><Toolbar><div className="field-group search-field"><label htmlFor="raipur-search">Search</label><input id="raipur-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Raipur records" /></div></Toolbar><div className="section-panel-body table-section-body"><RaipurGroupedTable rows={visibleRows} /></div></section>
   </div>;
@@ -40,7 +40,7 @@ function RaipurGroupedTable({ rows }) {
     return <div className="table-wrap"><table className="enterprise-table"><thead><tr>{COLUMNS.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody><tr className="table-empty-row"><td colSpan={COLUMNS.length}><div className="table-empty-inline"><div className="table-empty-icon">▤</div><strong>No Raipur database records available.</strong><span>Paste Raipur data above to create the independent master dataset.</span></div></td></tr></tbody></table></div>;
   }
 
-  return <div className="table-wrap"><table className="enterprise-table grouped-plan-table"><thead><tr>{COLUMNS.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.flatMap((plan) => {
+  return <div className="table-wrap records-polished"><table className="enterprise-table grouped-plan-table"><thead><tr>{COLUMNS.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.flatMap((plan) => {
     const locations = Array.isArray(plan.locations) && plan.locations.length
       ? plan.locations.map((location) => ({ loc: location.loc || '—', stos: Array.isArray(location.stos) ? [...new Set(location.stos.filter(Boolean).map(String))] : [] }))
       : [{ loc: Array.isArray(plan.loc) ? plan.loc[0] || '—' : plan.loc || '—', stos: Array.isArray(plan.sto) ? [...new Set(plan.sto.filter(Boolean).map(String))] : [] }];

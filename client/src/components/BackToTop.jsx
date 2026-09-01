@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 export default function BackToTop() {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 260);
+    const onScroll = () => setVisible(window.scrollY > 24);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
